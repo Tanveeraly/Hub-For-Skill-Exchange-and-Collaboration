@@ -1,0 +1,495 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id                     Int            @id @default(autoincrement())
+  name                   String?
+  email                  String         @unique
+  password               String?
+  role                   String         @default("USER")
+  status                 String         @default("ACTIVE")
+  provider               String?
+  providerId             String?
+  otpCode                String?
+  isVerified             Boolean        @default(false)
+  hasAcceptedTerms       Boolean        @default(false)
+  refreshToken           String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  resetPasswordToken     String?
+  resetPasswordExpires   DateTime?
+  bookmarks              Bookmark[]
+  outgoingCalls          Call[]         @relation("OutgoingCalls")
+  incomingCalls          Call[]         @relation("IncomingCalls")
+  comments               Comment[]
+  receivedConnections    Connection[]   @relation("ReceivedConnections")
+  sentConnections        Connection[]   @relation("SentConnections")
+  receivedMessages       Message[]      @relation("ReceivedMessages")
+  sentMessages           Message[]      @relation("SentMessages")
+  triggeredNotifications Notification[] @relation("TriggeredNotifications")
+  notifications          Notification[] @relation("UserNotifications")
+  portfolios             Portfolio[]
+  postLikes              PostLike[]
+  profile                Profile?
+  listings               SkillListing[]
+  sentRatings            SwapRating[]   @relation("SentRatings")
+  receivedRatings        SwapRating[]   @relation("ReceivedRatings")
+  receivedSwaps          SwapRequest[]  @relation("ReceivedSwaps")
+  sentSwaps              SwapRequest[]  @relation("SentSwaps")
+  activities             UserActivity[]
+  skills                 UserSkill[]
+  givenEndorsements      SkillEndorsement[] @relation("GivenEndorsements")
+  receivedEndorsements   SkillEndorsement[] @relation("ReceivedEndorsements")
+  certifications         SkillCertification[]
+  sentComplaints         Complaint[]    @relation("SentComplaints")
+  receivedComplaints     Complaint[]    @relation("ReceivedComplaints")
+  courseRegistrations    CourseRegistration[]
+  filedDisputes          Dispute[]      @relation("FiledDisputes")
+  disputesAgainst        Dispute[]      @relation("DisputesAgainst")
+  resolvedDisputes       Dispute[]      @relation("ResolvedDisputes")
+  auditLogs              AuditLog[]
+}
+
+
+
+model Profile {
+  id                Int             @id @default(autoincrement())
+  userId            Int             @unique
+  bio               String?
+  avatarUrl         String?
+  coverimageUrl     String?
+  socialLinks       String?
+  website           String?
+  location          String?
+  profileVisibility PrivacySetting  @default(PUBLIC)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  user              User            @relation(fields: [userId], references: [id])
+}
+
+model Portfolio {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  mediaUrl    String?
+  mediaType   MediaType?
+  createdAt   DateTime   @default(now())
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSkill {
+  id             Int            @id @default(autoincrement())
+  skillName      String
+  expertiseLevel ExpertiseLevel
+  userId         Int
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillName])
+}
+
+model UserActivity {
+  id           Int      @id @default(autoincrement())
+  activityType String
+  description  String?
+  createdAt    DateTime @default(now())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SkillCategory {
+  id          Int            @id @default(autoincrement())
+  name        String         @unique
+  description String?
+  listings    SkillListing[]
+}
+
+model SkillListing {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  price       Float?
+  rating      Float?         @default(0)
+  location    String?
+  isFeatured  Boolean        @default(false)
+  mediaUrl    String?
+  visibility  PrivacySetting @default(PUBLIC)
+  createdAt   DateTime       @default(now())
+  userId      Int
+  categoryId  Int?
+  bookmarks   Bookmark[]
+  comments    Comment[]
+  likes       PostLike[]
+  category    SkillCategory? @relation(fields: [categoryId], references: [id])
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  swaps       SwapRequest[]
+  complaints  Complaint[]
+}
+
+model Bookmark {
+  id        Int          @id @default(autoincrement())
+  createdAt DateTime     @default(now())
+  userId    Int
+  skillId   Int
+  skill     SkillListing @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model Comment {
+  id        Int          @id @default(autoincrement())
+  text      String
+  createdAt DateTime     @default(now())
+  userId    Int
+  skillId   Int
+  skill     SkillListing @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PostLike {
+  id        Int          @id @default(autoincrement())
+  createdAt DateTime     @default(now())
+  userId    Int
+  postId    Int
+  post      SkillListing @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+model SwapRequest {
+  id                   Int          @id @default(autoincrement())
+  status               SwapStatus   @default(PENDING)
+  message              String?
+  meetingAgenda        String?
+  offeredSkill         String?
+  requestedSkill       String?
+  preferredTimeSlots   Json?
+  scheduledAt          DateTime?
+  duration             Int?
+  rejectionReason      String?
+  proposedTimeSlot     Json?
+  // Escrow-style mutual confirmation
+  senderConfirmed      Boolean      @default(false)
+  receiverConfirmed    Boolean      @default(false)
+  // Cancellation tracking
+  cancelledBy          Int?
+  cancelledAt          DateTime?
+  cancellationReason   String?
+  cancellationDeadline DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  senderId             Int
+  receiverId           Int
+  skillId              Int
+  meetingRoomId        String?
+  rating               SwapRating?
+  workSessions         WorkSession[]
+  progressReports      ProgressReport[]
+  attachments          Attachment[]
+  endorsements         SkillEndorsement[]
+  certifications       SkillCertification[]
+  disputes             Dispute[]
+  receiver             User         @relation("ReceivedSwaps", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender               User         @relation("SentSwaps", fields: [senderId], references: [id], onDelete: Cascade)
+  skill                SkillListing @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+model SwapRating {
+  id            Int         @id @default(autoincrement())
+  rating        Int
+  feedback      String?
+  createdAt     DateTime    @default(now())
+  swapRequestId Int         @unique
+  fromUserId    Int
+  toUserId      Int
+  fromUser      User        @relation("SentRatings", fields: [fromUserId], references: [id], onDelete: Cascade)
+  swapRequest   SwapRequest @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+  toUser        User        @relation("ReceivedRatings", fields: [toUserId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id          Int          @id @default(autoincrement())
+  messageText String
+  createdAt   DateTime     @default(now())
+  senderId    Int
+  receiverId  Int
+  attachments Attachment[]
+  receiver    User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender      User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id            Int          @id @default(autoincrement())
+  fileUrl       String
+  fileName      String
+  fileType      String
+  fileSize      Int
+  createdAt     DateTime     @default(now())
+  messageId     Int?
+  swapRequestId Int?
+  message       Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  swapRequest   SwapRequest? @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+}
+
+model WorkSession {
+  id            Int         @id @default(autoincrement())
+  startTime     DateTime    @default(now())
+  endTime       DateTime?
+  description   String?
+  hoursWorked   Float?      @default(0)
+  swapRequestId Int
+  swapRequest   SwapRequest @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+}
+
+model ProgressReport {
+  id            Int         @id @default(autoincrement())
+  type          ReportType  @default(DAILY)
+  content       String
+  createdAt     DateTime    @default(now())
+  userId        Int
+  partnerId     Int
+  swapRequestId Int
+  completionPercentage Int      @default(0)
+  attachments   Json?
+  swapRequest   SwapRequest @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+}
+
+enum ReportType {
+  DAILY
+  WEEKLY
+}
+
+model Connection {
+  id         Int              @id @default(autoincrement())
+  status     ConnectionStatus @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  senderId   Int
+  receiverId Int
+  receiver   User             @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User             @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  type      NotificationType
+  title     String?
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  userId    Int
+  senderId  Int?
+  sender    User?            @relation("TriggeredNotifications", fields: [senderId], references: [id])
+  user      User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Call {
+  id         Int        @id @default(autoincrement())
+  callerId   Int
+  receiverId Int
+  callType   CallType
+  status     CallStatus
+  startedAt  DateTime?
+  endedAt    DateTime?
+  duration   Int?
+  createdAt  DateTime   @default(now())
+  caller     User       @relation("OutgoingCalls", fields: [callerId], references: [id], onDelete: Cascade)
+  receiver   User       @relation("IncomingCalls", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+enum PrivacySetting {
+  PUBLIC
+  PRIVATE
+  FRIENDS
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum ExpertiseLevel {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+  ADVANCED
+}
+
+enum SwapStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  RESCHEDULED
+  COMPLETED
+  CANCELLED
+  MORE_INFO_REQUESTED
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum NotificationType {
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  LIKE
+  COMMENT
+  SWAP_REQUEST
+  SWAP_ACCEPTED
+  SWAP_REJECTED
+  ENDORSEMENT
+  SYSTEM
+  DISPUTE_FILED
+  DISPUTE_RESOLVED
+  ESCROW_CONFIRMED
+  SWAP_CANCELLED
+}
+
+enum CallType {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  MISSED
+  COMPLETED
+  REJECTED
+}
+
+model SkillEndorsement {
+  id            Int         @id @default(autoincrement())
+  skillName     String
+  message       String?
+  createdAt     DateTime    @default(now())
+  endorserId    Int
+  endorseeId    Int
+  swapRequestId Int
+  endorser      User        @relation("GivenEndorsements", fields: [endorserId], references: [id], onDelete: Cascade)
+  endorsee      User        @relation("ReceivedEndorsements", fields: [endorseeId], references: [id], onDelete: Cascade)
+  swapRequest   SwapRequest @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([endorserId, endorseeId, swapRequestId])
+}
+
+model SkillCertification {
+  id                 Int          @id @default(autoincrement())
+  certificateId      String       @unique @default(uuid())
+  skillName          String
+  hoursLogged        Float        @default(0)
+  partnerVerified    Boolean      @default(false)
+  issuedAt           DateTime     @default(now())
+  provider           String?
+  credentialUrl      String?
+  certImage          String?
+  platformName       String?
+  verificationStatus String       @default("VERIFIED")
+  userId             Int
+  swapRequestId      Int?
+  courseId           Int?
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  swapRequest        SwapRequest? @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+  course             Course?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
+}
+
+model Complaint {
+  id          Int      @id @default(autoincrement())
+  subject     String
+  description String
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  senderId    Int
+  targetId    Int?
+  postId      Int?
+  sender      User     @relation("SentComplaints", fields: [senderId], references: [id], onDelete: Cascade)
+  target      User?    @relation("ReceivedComplaints", fields: [targetId], references: [id], onDelete: Cascade)
+  post        SkillListing? @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  level       String   @default("BEGINNER")
+  hours       Float
+  imageUrl    String?
+  skills      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  registrations  CourseRegistration[]
+  certifications SkillCertification[]
+}
+
+model CourseRegistration {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  courseId     Int
+  progress     Float     @default(0)
+  status       String    @default("IN_PROGRESS")
+  registeredAt DateTime  @default(now())
+  completedAt  DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model JobLog {
+  id          Int      @id @default(autoincrement())
+  jobName     String
+  status      String   @default("SUCCESS") // SUCCESS, WARNING, ERROR
+  message     String?
+  createdAt   DateTime @default(now())
+}
+
+model Dispute {
+  id                Int          @id @default(autoincrement())
+  subject           String
+  description       String
+  category          String       @default("GENERAL") // GENERAL, NO_SHOW, QUALITY, MISCONDUCT, BREACH_OF_TERMS
+  status            String       @default("OPEN") // OPEN, UNDER_REVIEW, ESCALATED, RESOLVED, DISMISSED
+  priority          String       @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  resolution        String?
+  adminNotes        String?
+  evidence          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  resolvedAt        DateTime?
+  filedById         Int
+  againstId         Int
+  swapRequestId     Int
+  resolvedById      Int?
+  filedBy           User         @relation("FiledDisputes", fields: [filedById], references: [id], onDelete: Cascade)
+  against           User         @relation("DisputesAgainst", fields: [againstId], references: [id], onDelete: Cascade)
+  swapRequest       SwapRequest  @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+  resolvedBy        User?        @relation("ResolvedDisputes", fields: [resolvedById], references: [id])
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  action      String   // LOGIN, LOGOUT, FAILED_LOGIN, PASSWORD_CHANGE, ACCOUNT_SUSPENDED, ACCOUNT_DELETED, CERT_VERIFIED, CERT_REJECTED, COMPLAINT_RESOLVED, DISPUTE_RESOLVED, POST_DELETED, PORTFOLIO_DELETED, ROLE_CHANGE, SETTINGS_CHANGE, DATA_EXPORT
+  category    String   @default("AUTH") // AUTH, USER_MGMT, CONTENT, SECURITY, SYSTEM
+  description String?
+  ipAddress   String?
+  userAgent   String?
+  severity    String   @default("INFO") // INFO, WARNING, CRITICAL
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
