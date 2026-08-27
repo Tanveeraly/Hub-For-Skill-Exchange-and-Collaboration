@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        @apply antialiased;
+    }
+
+    body {
+        @apply antialiased text-neutral-900 bg-neutral-50 font-sans;
+    }
+
+    /* Improve text rendering */
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-display font-bold text-neutral-900;
+    }
+
+    /* Focus styles for accessibility */
+    *:focus-visible {
+        @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+    }
+
+    /* Remove default button styles */
+    button {
+        @apply focus:outline-none;
+    }
+}
+
+@layer components {
+    /* Professional Button Variants */
+    .btn {
+        @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    }
+
+    .btn-primary {
+        @apply bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 focus:ring-primary-500 shadow-md hover:shadow-lg active:scale-95;
+    }
+
+    .btn-secondary {
+        @apply bg-gradient-to-r from-secondary-500 to-secondary-600 text-white hover:from-secondary-600 hover:to-secondary-700 focus:ring-secondary-500 shadow-md hover:shadow-lg active:scale-95;
+    }
+
+    .btn-outline {
+        @apply border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500 active:scale-95;
+    }
+
+    .btn-ghost {
+        @apply text-neutral-700 hover:bg-neutral-100 focus:ring-neutral-500 active:scale-95;
+    }
+
+    /* Professional Card Styles */
+    .card {
+        @apply bg-white rounded-2xl shadow-md border border-neutral-200/50;
+    }
+
+    .card-hover {
+        @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary-200/50;
+    }
+
+    /* Input Styles */
+    .input {
+        @apply w-full px-4 py-3 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white text-neutral-900;
+    }
+
+    /* Badge Styles */
+    .badge {
+        @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+    }
+
+    .badge-primary {
+        @apply bg-primary-100 text-primary-700 border border-primary-200;
+    }
+
+    .badge-secondary {
+        @apply bg-secondary-100 text-secondary-700 border border-secondary-200;
+    }
+
+    .badge-success {
+        @apply bg-success-100 text-success-700 border border-success-200;
+    }
+}
+
+@layer utilities {
+    /* Glass Morphism */
+    .glass {
+        @apply bg-white/80 backdrop-blur-xl border border-white/30 shadow-xl;
+    }
+
+    .glass-dark {
+        @apply bg-neutral-900/80 backdrop-blur-xl border border-white/10 shadow-2xl;
+    }
+
+    /* Text Gradients */
+    .text-gradient {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500;
+    }
+
+    .text-gradient-accent {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-600 to-primary-600;
+    }
+
+    /* Background Gradients */
+    .bg-gradient-primary {
+        @apply bg-gradient-to-br from-primary-50 via-white to-secondary-50;
+    }
+
+    .bg-gradient-dark {
+        @apply bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900;
+    }
+
+    /* Professional Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        @apply bg-neutral-100 rounded-full;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        @apply bg-gradient-to-b from-primary-400 to-primary-600 rounded-full;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        @apply from-primary-500 to-primary-700;
+    }
+
+    /* Thin Scrollbar */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    /* Skeleton Loading */
+    @keyframes skeleton-loading {
+        0% {
+            background-position: -200% 0;
+        }
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    .skeleton {
+        @apply bg-gradient-to-r from-neutral-200 via-neutral-100 to-neutral-200;
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+
+    /* Shimmer Effect */
+    @keyframes shimmer {
+        0% {
+            background-position: -1000px 0;
+        }
+        100% {
+            background-position: 1000px 0;
+        }
+    }
+
+    .shimmer {
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.4),
+            transparent
+        );
+        background-size: 1000px 100%;
+        animation: shimmer 2s linear infinite;
+    }
+
+    /* Smooth Transitions */
+    .transition-smooth {
+        @apply transition-all duration-300 ease-in-out;
+    }
+
+    .transition-fast {
+        @apply transition-all duration-150 ease-in-out;
+    }
+
+    /* Gradient Borders */
+    .gradient-border {
+        @apply relative bg-white;
+    }
+
+    .gradient-border::before {
+        content: '';
+        @apply absolute inset-0 rounded-2xl p-[2px] bg-gradient-to-r from-primary-500 to-secondary-500;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+
+    /* Glow Effects */
+    .glow {
+        @apply shadow-glow;
+    }
+
+    .glow-lg {
+        @apply shadow-glow-lg;
+    }
+
+    /* Container Utilities */
+    .container-narrow {
+        @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+
+    .container-wide {
+        @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+
+    /* Floating Animation */
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .float {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    /* Pulse Glow Animation */
+    @keyframes pulse-glow {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+    }
+
+    .pulse-glow {
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    /* Professional Shadows */
+    .shadow-soft {
+        box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+    }
+
+    .shadow-professional {
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Hover Lift Effect */
+    .hover-lift {
+        @apply transition-transform duration-300 ease-out;
+    }
+
+    .hover-lift:hover {
+        @apply -translate-y-1;
+    }
+}
