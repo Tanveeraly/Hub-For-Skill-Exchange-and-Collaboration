@@ -10,8 +10,18 @@
         @apply antialiased;
     }
 
+    :root {
+        --color-brand: #0A66C2;
+        --color-brand-soft: #F0F7FE;
+        --color-surface: #FFFFFF;
+        --color-surface-alt: #F8FAFC;
+        --color-border: #E2E8F0;
+        --color-text: #0F172A;
+    }
+
     body {
         @apply antialiased text-neutral-900 bg-neutral-50 font-sans;
+        background-color: var(--color-surface-alt);
     }
 
     /* Improve text rendering */
@@ -37,15 +47,15 @@
     }
 
     .btn-primary {
-        @apply bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 focus:ring-primary-500 shadow-md hover:shadow-lg active:scale-95;
+        @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md active:scale-95;
     }
 
     .btn-secondary {
-        @apply bg-gradient-to-r from-secondary-500 to-secondary-600 text-white hover:from-secondary-600 hover:to-secondary-700 focus:ring-secondary-500 shadow-md hover:shadow-lg active:scale-95;
+        @apply bg-neutral-100 text-neutral-800 hover:bg-neutral-200 focus:ring-primary-500 shadow-sm active:scale-95;
     }
 
     .btn-outline {
-        @apply border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500 active:scale-95;
+        @apply border border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500 active:scale-95;
     }
 
     .btn-ghost {
@@ -54,11 +64,11 @@
 
     /* Professional Card Styles */
     .card {
-        @apply bg-white rounded-2xl shadow-md border border-neutral-200/50;
+        @apply bg-white rounded-lg shadow-sm border border-neutral-200;
     }
 
     .card-hover {
-        @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary-200/50;
+        @apply transition-shadow duration-200 hover:shadow-md hover:border-neutral-300;
     }
 
     /* Input Styles */
@@ -96,20 +106,20 @@
 
     /* Text Gradients */
     .text-gradient {
-        @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500;
+        @apply bg-clip-text text-transparent bg-primary-600;
     }
 
     .text-gradient-accent {
-        @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-600 to-primary-600;
+        @apply bg-clip-text text-transparent bg-primary-700;
     }
 
     /* Background Gradients */
     .bg-gradient-primary {
-        @apply bg-gradient-to-br from-primary-50 via-white to-secondary-50;
+        @apply bg-[#f3f6f8];
     }
 
     .bg-gradient-dark {
-        @apply bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900;
+        @apply bg-neutral-900;
     }
 
     /* Professional Scrollbar */
@@ -189,7 +199,7 @@
 
     .gradient-border::before {
         content: '';
-        @apply absolute inset-0 rounded-2xl p-[2px] bg-gradient-to-r from-primary-500 to-secondary-500;
+        @apply absolute inset-0 rounded-lg p-[1px] bg-primary-600;
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor;
         mask-composite: exclude;

@@ -477,15 +477,15 @@ export default function Marketplace() {
 
 
   return (
-    <div className="min-h-screen bg-neutral-50 pt-20 pb-12">
+    <div className="min-h-screen bg-neutral-50 pb-12">
       <NotificationToast toasts={toasts} removeToast={removeToast} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Create Listing Button */}
-        <div className="flex justify-end mb-6">
+        <div className="mb-6 flex justify-end">
           <button
             onClick={handleCreateListingClick}
             disabled={authLoading}
-            className="flex items-center space-x-2 bg-success-600 hover:bg-success-700 text-white px-6 py-3 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center space-x-2 rounded-lg bg-primary-600 px-6 py-3 font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus className="w-5 h-5" />
             <span>
@@ -494,8 +494,12 @@ export default function Marketplace() {
           </button>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold text-neutral-900">Skill Marketplace</h1>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary-600">Explore the community</p>
+            <h1 className="mt-1 text-3xl font-bold text-neutral-900">Skill Marketplace</h1>
+            <p className="mt-1 text-sm text-neutral-600">Find people to learn from, collaborate with, and teach.</p>
+          </div>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
@@ -509,7 +513,7 @@ export default function Marketplace() {
         {/* Create Listing Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl">
               <div className="flex items-center justify-between p-6 border-b border-neutral-200">
                 <h2 className="text-2xl font-bold text-neutral-900">Create Skill Listing</h2>
                 <button

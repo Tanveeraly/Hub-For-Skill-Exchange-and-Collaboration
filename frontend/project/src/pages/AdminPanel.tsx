@@ -26,12 +26,12 @@ import { Plus } from 'lucide-react';
 
 type AdminTab = 'overview' | 'users' | 'portfolios' | 'certifications' | 'complaints' | 'courses' | 'jobs' | 'conflicts';
 
-export default function AdminPanel() {
+export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: AdminTab }) {
     const dispatch = useDispatch<AppDispatch>();
     const { overview, users, portfolios, certifications, complaints, jobLogs } = useSelector((s: RootState) => s.admin);
     const { adminDisputes, stats: disputeStats } = useSelector((s: RootState) => s.disputes);
     const currentUser = useSelector((s: RootState) => s.auth.user);
-    const [tab, setTab] = useState<AdminTab>('overview');
+    const [tab, setTab] = useState<AdminTab>(initialTab);
     const [search, setSearch] = useState('');
     const [certFilter, setCertFilter] = useState('');
     const [complaintFilter, setComplaintFilter] = useState('');
@@ -898,48 +898,9 @@ export default function AdminPanel() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-20">
-            <div className="flex">
-                {/* Sidebar */}
-                <aside className="w-64 min-h-[calc(100vh-5rem)] bg-white border-r border-gray-100 p-4 sticky top-20">
-                    <div className="flex items-center gap-3 mb-8 px-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                            <Shield className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h2 className="font-bold text-gray-900">Admin Panel</h2>
-                            <p className="text-[10px] text-gray-400 uppercase font-semibold">Management Console</p>
-                        </div>
-                    </div>
-                    <nav className="space-y-1">
-                        {tabs.map(t => (
-                            <button key={t.key} onClick={() => { setTab(t.key); setSearch(''); }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.key ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                                <t.icon className="w-4 h-4" />{t.label}
-                                {t.key === 'certifications' && overview?.pendingCertifications > 0 && (
-                                    <span className="ml-auto bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{overview.pendingCertifications}</span>
-                                )}
-                                {t.key === 'complaints' && overview?.openComplaints > 0 && (
-                                    <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{overview.openComplaints}</span>
-                                )}
-                                {t.key === 'conflicts' && (disputeStats?.open ?? 0) + (disputeStats?.escalated ?? 0) > 0 && (
-                                    <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                        {(disputeStats?.open ?? 0) + (disputeStats?.escalated ?? 0)}
-                                    </span>
-                                )}
-                            </button>
-                        ))}
-                    </nav>
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                        <a href="/admin/security"
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-600 hover:bg-red-50 hover:text-red-700">
-                            <ShieldAlert className="w-4 h-4" />Security Dashboard
-                        </a>
-                    </div>
-                </aside>
-
+        <div className="min-h-screen bg-slate-100">
                 {/* Main Content */}
-                <main className="flex-1 p-8">
+                <main className="w-full">
                     <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
                         {tab === 'overview' && renderOverview()}
                         {tab === 'users' && renderUsers()}
@@ -951,7 +912,6 @@ export default function AdminPanel() {
                         {tab === 'jobs' && renderJobs()}
                     </motion.div>
                 </main>
-            </div>
 
             {/* View Details Modal */}
             {viewDetails && (

@@ -1,0 +1,2 @@
+import Card from '../ui/Card';
+export default function SwapCalendar({ children }: { children?: React.ReactNode }) { return <Card className="overflow-hidden"><div className="border-b border-neutral-200 px-5 py-4"><h2 className="font-semibold">Swap calendar</h2><p className="mt-1 text-sm text-neutral-500">Keep upcoming sessions and commitments in view.</p></div><div className="p-5">{children}</div></Card>; }

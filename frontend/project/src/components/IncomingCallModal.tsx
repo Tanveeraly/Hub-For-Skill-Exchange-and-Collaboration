@@ -21,7 +21,7 @@ export default function IncomingCallModal() {
         // Notify caller that call was rejected
         socket.emit('call-rejected', {
             callerId: incomingCallData.callerId,
-            receiverId: user?.id,
+            receiverId: Number(user?.id),
             reason: 'User declined the call'
         });
 
@@ -29,7 +29,7 @@ export default function IncomingCallModal() {
         if (user?.id) {
             dispatch(saveCallRecord({
                 callerId: incomingCallData.callerId,
-                receiverId: user.id,
+                receiverId: Number(user.id),
                 callType: incomingCallData.callType,
                 status: 'rejected'
             }));

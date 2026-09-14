@@ -29,6 +29,7 @@ import SkillModal from "../components/SkillModal";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../store/store";
 import { updatePostVisibility } from "../store/slices/postsSlice";
+import Tabs from "../components/ui/Tabs";
 
 interface PortfolioItem {
   id: string;
@@ -637,7 +638,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pt-24 pb-20">
+    <div className="min-h-screen bg-neutral-50 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* GLOBAL FEEDBACK */}
@@ -677,7 +678,7 @@ export default function Profile() {
           {/* LEFT SIDEBAR: Personal Branding */}
           <div className="lg:w-1/3 space-y-8">
             {/* Identity Card */}
-            <div className="bg-white rounded-[32px] shadow-xl shadow-primary-900/5 border border-white p-8 relative overflow-hidden group">
+            <div className="group relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
               {/* Cover Image Banner */}
               <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-primary-100 to-primary-100 overflow-hidden">
                 {(coverPreview || profile.coverimageUrl) && (
@@ -697,7 +698,7 @@ export default function Profile() {
               <div className="relative flex flex-col items-center text-center mt-12">
                 {/* Avatar */}
                 <div className="relative mb-6">
-                  <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-primary-50 to-primary-50 flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white">
+                  <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-primary-50 shadow-lg">
                     {avatarPreview || profile.avatrurl ? (
                       <img src={avatarPreview || profile.avatrurl} alt={profile.name} className="w-full h-full object-cover" />
                     ) : (
@@ -705,7 +706,7 @@ export default function Profile() {
                     )}
                   </div>
                   {isEditing && (
-                    <button onClick={() => document.getElementById("avatarUpload")?.click()} className="absolute -bottom-2 -right-2 bg-primary-600 text-white p-3 rounded-2xl hover:bg-primary-700 shadow-lg border-4 border-white transition-all">
+                    <button onClick={() => document.getElementById("avatarUpload")?.click()}                     className="absolute -bottom-2 -right-2 rounded-full border-4 border-white bg-primary-600 p-3 text-white shadow-lg transition-all hover:bg-primary-700">
                       <Camera className="w-5 h-5" />
                     </button>
                   )}
@@ -730,13 +731,13 @@ export default function Profile() {
                 <div className="w-full flex gap-3">
                   <button
                     onClick={() => { if (isEditing) handleProfileUpdate(); else setIsEditing(true); }}
-                    className="flex-1 bg-neutral-900 text-white py-3 rounded-2xl font-black text-sm hover:bg-neutral-800 transition-all flex items-center justify-center space-x-2"
+                    className="flex-1 rounded-lg bg-primary-600 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-700 flex items-center justify-center space-x-2"
                   >
                     {isEditing ? <Save className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
                     <span>{isEditing ? "Save" : "Edit Profile"}</span>
                   </button>
                   {isEditing && (
-                    <button onClick={handleCancelEdit} className="p-3 bg-neutral-100 text-neutral-400 rounded-2xl hover:text-error-500 transition-all">
+                    <button onClick={handleCancelEdit} className="rounded-lg bg-neutral-100 p-3 text-neutral-400 transition-all hover:text-error-500">
                       <X className="w-5 h-5" />
                     </button>
                   )}
@@ -781,7 +782,7 @@ export default function Profile() {
             </div>
 
             {/* About & Contact */}
-            <div className="bg-white rounded-[32px] shadow-xl shadow-primary-900/5 border border-white p-8">
+            <div className="rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
               <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-6 px-2 text-center lg:text-left">Biography</h3>
               {isEditing ? (
                 <textarea
@@ -847,25 +848,17 @@ export default function Profile() {
           {/* RIGHT CONTENT: Dynamic Activity */}
           <div className="lg:w-2/3 space-y-8">
             {/* Tabs Header */}
-            <div className="bg-white p-2 rounded-[28px] shadow-xl shadow-primary-900/5 flex flex-wrap gap-2 sticky top-24 z-10 border border-white">
-              {[
-                { id: 'about', label: 'Overview', icon: Layout },
-                { id: 'skills', label: 'Specialties', icon: Award },
-                { id: 'portfolio', label: 'Case Studies', icon: Briefcase },
-                { id: 'listings', label: 'Active Services', icon: FileText }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 min-w-[120px] flex items-center justify-center space-x-2 py-4 rounded-[22px] font-black text-sm transition-all ${activeTab === tab.id
-                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
-                    : 'text-neutral-500 hover:bg-neutral-50'
-                    }`}
-                >
-                  <tab.icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
+            <div className="sticky top-20 z-10 rounded-xl border border-neutral-200 bg-white px-4 pt-2 shadow-sm">
+              <Tabs
+                active={activeTab}
+                onChange={(value) => setActiveTab(value as typeof activeTab)}
+                items={[
+                  { value: 'about', label: 'About' },
+                  { value: 'skills', label: 'Skills' },
+                  { value: 'portfolio', label: 'Portfolio' },
+                  { value: 'listings', label: 'Listings' },
+                ]}
+              />
             </div>
 
             {/* TAB CONTENT */}

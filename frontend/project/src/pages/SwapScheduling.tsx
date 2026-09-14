@@ -44,6 +44,7 @@ import RatingModal from '../components/RatingModal';
 import WorkSessionModal from '../components/WorkSessionModal';
 import MeetingInvitationModal from '../components/MeetingInvitationModal';
 import { startWorkSession, endWorkSession, fetchWorkSessions, submitReport, fetchReports } from '../store/slices/collabSlice';
+import Tabs from '../components/ui/Tabs';
 
 function useCountdown(targetDate: string | null) {
     const [timeLeft, setTimeLeft] = useState<string | null>(null);
@@ -506,7 +507,7 @@ export default function SwapScheduling() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] pt-24 pb-20">
+        <div className="min-h-screen bg-neutral-50 pb-20">
             <div className="max-w-5xl mx-auto px-4">
                 <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
@@ -520,20 +521,14 @@ export default function SwapScheduling() {
                         <p className="text-neutral-500 mt-2 font-medium">Coordinate your skills exchange and track growth</p>
                     </div>
 
-                    <div className="flex bg-neutral-100 p-1 rounded-2xl border border-neutral-200/50">
-                        {['calendar', 'pending', 'active', 'history', 'disputes'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab as any)}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab === tab
-                                    ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/60'
-                                    : 'text-neutral-500 hover:text-neutral-900'
-                                    }`}
-                            >
-                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                            </button>
-                        ))}
-                    </div>
+                    <Tabs
+                        active={activeTab}
+                        onChange={(value) => setActiveTab(value as typeof activeTab)}
+                        items={['pending', 'active', 'history', 'calendar', 'disputes'].map((tab) => ({
+                            value: tab,
+                            label: tab === 'history' ? 'Completed' : tab.charAt(0).toUpperCase() + tab.slice(1),
+                        }))}
+                    />
                 </header>
 
                 <AnimatePresence mode="wait">
@@ -1235,4 +1230,3 @@ function EmptyState({ message }: { message: string }) {
         </div>
     );
 }
-
