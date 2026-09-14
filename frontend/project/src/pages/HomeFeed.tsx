@@ -119,7 +119,6 @@ export default function HomeFeed() {
                 isLiked: p.isLiked || false,
                 isSaved: false,
                 mediaUrl: p.mediaUrl,
-                mediaUrl: p.mediaUrl,
             };
         });
         setPosts(mappedPosts);
@@ -353,105 +352,22 @@ export default function HomeFeed() {
                 </div>
             )}
 
-            <div className="container-wide">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Left Sidebar - User Profile */}
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="lg:col-span-3"
-                    >
-                        <div className="card card-hover overflow-hidden sticky top-24">
-                            {/* Cover & Avatar */}
-                            <div className="h-20 bg-gradient-to-r from-primary-600 via-secondary-600 to-accent-500 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-r from-primary-400/20 to-secondary-400/20 animate-pulse"></div>
-                            </div>
-                            <div className="px-4 pb-4">
-                                <div className="flex flex-col items-center -mt-12">
-                                    {userProfile?.profile?.avatarUrl ? (
-                                        <div className="relative">
-                                            <img
-                                                src={userProfile.profile.avatarUrl}
-                                                alt={userProfile.name}
-                                                className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-xl"
-                                            />
-                                            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-success-500 rounded-full border-2 border-white"></div>
-                                        </div>
-                                    ) : (
-                                        <div className="relative">
-                                            <div className="w-24 h-24 rounded-full border-4 border-white bg-gradient-to-br from-primary-600 to-secondary-500 flex items-center justify-center text-white font-bold text-2xl shadow-xl">
-                                                {userProfile ? getAvatarInitials(userProfile.name) : 'U'}
-                                            </div>
-                                            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-success-500 rounded-full border-2 border-white"></div>
-                                        </div>
-                                    )}
-
-                                    <div className="mt-3 flex items-center justify-center space-x-2">
-                                        <h3 className="text-lg font-bold text-neutral-900 text-center">
-                                            {userProfile?.name || 'Loading...'}
-                                        </h3>
-                                        {userProfile?.isVerified && (
-                                            <span className="bg-primary-100 text-primary-600 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-primary-200">
-                                                Verified
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {userProfile?.profile?.bio && (
-                                        <p className="text-sm text-neutral-600 text-center mt-1 line-clamp-2">
-                                            {userProfile.profile.bio}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-neutral-100 space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs text-neutral-500 flex items-center">
-                                            <Eye className="w-4 h-4 mr-1" />
-                                            Profile Views
-                                        </span>
-                                        <span className="text-sm font-semibold text-primary-600">{/* TODO: fetch from API */}--</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs text-neutral-500 flex items-center">
-                                            <RefreshCw className="w-4 h-4 mr-1" />
-                                            Swaps Completed
-                                        </span>
-                                        <span className="text-sm  font-semibold text-success-600">{/* TODO: fetch from API */}--</span>
-                                    </div>
-                                </div>
-
-                                {userProfile?.skills && userProfile.skills.length > 0 && (
-                                    <div className="mt-4 pt-4 border-t border-neutral-100">
-                                        <h4 className="text-xs font-semibold text-neutral-700 mb-2 flex items-center">
-                                            <Sparkles className="w-4 h-4 mr-1 text-warning-500" />
-                                            YOUR SKILLS
-                                        </h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {userProfile.skills.slice(0, 4).map((skill) => (
-                                                <motion.span
-                                                    key={skill.id}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    className="px-3 py-1 bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 rounded-full text-xs font-medium cursor-pointer hover:shadow-md transition-all"
-                                                >
-                                                    {skill.skillName}
-                                                </motion.span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+            <div className="mx-auto max-w-6xl">
+                    <div className="mb-6 flex items-end justify-between lg:col-span-2">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">Community</p>
+                            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">Your skill exchange</h1>
+                            <p className="mt-1 text-sm text-neutral-500">Discover people, share what you know, and find your next learning partner.</p>
                         </div>
-                    </motion.div>
-
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
                     {/* Main Feed */}
-                    <div className="lg:col-span-6 space-y-6">
+                    <div className="space-y-6">
                         {/* Filter and Sort Bar */}
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-2xl shadow-lg p-4 flex flex-wrap items-center gap-3"
+                            className="border-b border-neutral-200 bg-white px-4 py-3 flex flex-wrap items-center gap-3"
                         >
                             <div className="flex items-center space-x-2 flex-1">
                                 <Filter className="w-4 h-4 text-neutral-500" />
@@ -461,8 +377,8 @@ export default function HomeFeed() {
                                         <button
                                             key={f}
                                             onClick={() => setFilter(f)}
-                                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${filter === f
-                                                ? 'bg-gradient-to-r from-primary-600 to-accent-600 text-white shadow-md'
+                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${filter === f
+                                            ? 'bg-primary-700 text-white'
                                                 : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                                                 }`}
                                         >
@@ -476,7 +392,7 @@ export default function HomeFeed() {
                                 <select
                                     value={sort}
                                     onChange={(e) => setSort(e.target.value as SortType)}
-                                    className="px-3 py-1 rounded-lg text-sm font-medium bg-neutral-100 border-none focus:ring-2 focus:ring-primary-500"
+                                    className="px-3 py-1.5 rounded-md text-sm font-medium bg-neutral-100 border border-neutral-200 focus:ring-2 focus:ring-primary-500"
                                 >
                                     <option value="recent">Recent</option>
                                     <option value="popular">Popular</option>
@@ -489,7 +405,7 @@ export default function HomeFeed() {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="card card-hover p-6"
+                            className="card p-5"
                         >
                             <div className="flex items-center space-x-3 mb-4">
                                 {userProfile?.profile?.avatarUrl ? (
@@ -499,13 +415,13 @@ export default function HomeFeed() {
                                         className="w-12 h-12 rounded-full object-cover"
                                     />
                                 ) : (
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-600 to-secondary-500 flex items-center justify-center text-white font-bold">
+                                    <div                                     className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
                                         {userProfile ? getAvatarInitials(userProfile.name) : 'U'}
                                     </div>
                                 )}
                                 <button
                                     onClick={() => setShowCreatePost(!showCreatePost)}
-                                    className="flex-1 text-left px-4 py-3 bg-gradient-to-r from-neutral-50 to-primary-50 hover:from-neutral-100 hover:to-primary-100 rounded-full text-neutral-500 transition-all"
+                                    className="flex-1 text-left px-4 py-3 border border-neutral-300 bg-neutral-50 hover:bg-white rounded-md text-neutral-500 transition-all"
                                 >
                                     Share a skill swap...
                                 </button>
@@ -574,7 +490,7 @@ export default function HomeFeed() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setPostVisibility('PUBLIC')}
-                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                                                         postVisibility === 'PUBLIC'
                                                             ? 'bg-white shadow text-primary-700'
                                                             : 'text-neutral-500 hover:text-neutral-700'
@@ -586,7 +502,7 @@ export default function HomeFeed() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setPostVisibility('PRIVATE')}
-                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                                                         postVisibility === 'PRIVATE'
                                                             ? 'bg-white shadow text-rose-600'
                                                             : 'text-neutral-500 hover:text-neutral-700'
@@ -600,7 +516,7 @@ export default function HomeFeed() {
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleCreatePost}
-                                                className="px-8 py-2 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-full hover:shadow-lg transition-all font-medium"
+                                                className="px-6 py-2 bg-primary-700 text-white rounded-md hover:bg-primary-800 transition-all font-medium"
                                                 type="button"
                                             >
                                                 Post
@@ -639,11 +555,11 @@ export default function HomeFeed() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
-                                    className={`rounded-2xl shadow-lg card-hover overflow-hidden bg-white`}
+                                    className="card overflow-hidden"
                                 >
 
 
-                                    <div className="p-6">
+                                    <div className="p-5">
                                         {/* Post Header */}
                                         <div className="flex items-start space-x-3 mb-4">
                                             {post.userAvatar && post.userAvatar.startsWith('http') ? (
@@ -653,7 +569,7 @@ export default function HomeFeed() {
                                                     className="w-12 h-12 rounded-full object-cover"
                                                 />
                                             ) : (
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-600 to-error-500 flex items-center justify-center text-white font-bold shadow-md">
+                                                <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
                                                     {post.userAvatar || post.userName.charAt(0)}
                                                 </div>
                                             )}
@@ -695,13 +611,13 @@ export default function HomeFeed() {
                                                 <div className="flex flex-wrap gap-2 mb-3">
                                                     <motion.span
                                                         whileHover={{ scale: 1.05 }}
-                                                        className="px-4 py-1.5 bg-gradient-to-r from-success-100 to-success-100 text-success-700 rounded-full text-sm font-medium shadow-sm"
+                                                        className="px-3 py-1 bg-success-50 text-success-700 border border-success-200 rounded-md text-sm font-medium"
                                                     >
                                                         Offering: {post.skillOffered}
                                                     </motion.span>
                                                     <motion.span
                                                         whileHover={{ scale: 1.05 }}
-                                                        className="px-4 py-1.5 bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 rounded-full text-sm font-medium shadow-sm"
+                                                        className="px-3 py-1 bg-primary-50 text-primary-700 border border-primary-200 rounded-md text-sm font-medium"
                                                     >
                                                         Seeking: {post.skillWanted}
                                                     </motion.span>
@@ -765,18 +681,35 @@ export default function HomeFeed() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="lg:col-span-3 space-y-6"
+                        className="space-y-4"
                     >
+                        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm">
+                            <div className="border-b border-neutral-200 px-4 py-3">
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-600">Your momentum</p>
+                                <h2 className="mt-1 text-base font-semibold text-neutral-900">Keep building your network</h2>
+                            </div>
+                            <div className="grid grid-cols-2 divide-x divide-neutral-200">
+                                <div className="p-4">
+                                    <p className="text-2xl font-semibold text-neutral-900">{connections.length}</p>
+                                    <p className="mt-1 text-xs text-neutral-500">Connections</p>
+                                </div>
+                                <div className="p-4">
+                                    <p className="text-2xl font-semibold text-neutral-900">{localPosts.length}</p>
+                                    <p className="mt-1 text-xs text-neutral-500">Feed posts</p>
+                                </div>
+                            </div>
+                        </div>
                         {/* Suggested Connections */}
-                        <div className="bg-white rounded-2xl shadow-lg p-4 sticky top-24">
-                            <h3 className="font-semibold text-neutral-900 mb-4 flex items-center">
-                                <Users className="w-5 h-5 mr-2 text-primary-600" />
-                                Suggested For You
-                            </h3>
+                        <div className="sticky top-24 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+                            <div className="mb-4 flex items-start justify-between">
+                                <div>
+                                    <h3 className="font-semibold text-neutral-900">People to connect with</h3>
+                                    <p className="mt-1 text-xs text-neutral-500">Based on the skills in your community</p>
+                                </div>
+                                <Users className="h-4 w-4 text-primary-600" />
+                            </div>
                             <div className="space-y-3">
-                                {suggestedUsers.slice(0, 5).map((suggestedUser, idx) => {
-                                    console.log(`User ${idx}:`, JSON.stringify(suggestedUser, null, 2));
-                                    return (
+                                {suggestedUsers.slice(0, 5).map((suggestedUser, idx) => (
 
                                         <div
                                             key={suggestedUser.id || idx}
@@ -794,7 +727,7 @@ export default function HomeFeed() {
                                                     }}
                                                 />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center text-white font-bold text-sm">
+                                                <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
                                                     {getAvatarInitials(suggestedUser.name)}
                                                 </div>
                                             )}
@@ -846,33 +779,16 @@ export default function HomeFeed() {
                                             </button>
 
                                         </div>
-                                    );
-                                })}
+                                ))}
+                                {suggestedUsers.length === 0 && (
+                                    <p className="py-4 text-sm text-neutral-500">No new recommendations right now.</p>
+                                )}
                             </div>
                         </div>
 
-                        {/* Trending Skills */}
-                        <div className="bg-white rounded-2xl shadow-lg p-4">
-                            <h3 className="font-semibold text-neutral-900 mb-4 flex items-center">
-                                <TrendingUp className="w-5 h-5 mr-2 text-success-600" />
-                                Trending Skills
-                            </h3>
-                            <div className="space-y-3">
-                                {['React', 'Python', 'UI/UX Design', 'Data Science', 'Mobile Dev'].map((skill, idx) => (
-                                    <motion.div
-                                        key={idx}
-                                        whileHover={{ x: 4 }}
-                                        className="flex items-center justify-between p-2 rounded-lg hover:bg-neutral-50 transition-all cursor-pointer"
-                                    >
-                                        <span className="text-sm text-neutral-700 font-medium">{skill}</span>
-                                        <span className="text-xs text-success-600 font-semibold">Trending</span>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </div>
                     </motion.div>
                 </div>
-            </div >
-        </div >
+                </div>
+            </div>
     );
 }

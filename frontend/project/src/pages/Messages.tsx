@@ -228,9 +228,9 @@ export default function Messages() {
     });
 
     return (
-        <div className="min-h-screen bg-neutral-50 pt-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden" style={{ height: 'calc(100vh - 140px)', minHeight: '600px' }}>
+        <div className="min-h-screen bg-neutral-50">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm" style={{ height: 'calc(100vh - 140px)', minHeight: '600px' }}>
                     <div className="flex h-full">
                         {/* Conversations Sidebar */}
                         <div className={`w-full md:w-80 lg:w-96 border-r border-neutral-200 flex flex-col bg-white ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
@@ -264,7 +264,7 @@ export default function Messages() {
                                             key={conv.id}
                                             whileHover={{ backgroundColor: '#f9fafb' }}
                                             onClick={() => dispatch(setSelectedConversationId(conv.id))}
-                                            className={`p-4 border-b border-neutral-100 cursor-pointer transition ${selectedConversation?.id === conv.id ? 'bg-primary-50' : ''
+                                            className={`cursor-pointer border-b border-neutral-100 p-4 transition ${selectedConversation?.id === conv.id ? 'border-l-4 border-l-primary-600 bg-primary-50' : 'hover:bg-neutral-50'
                                                 }`}
                                         >
                                             <div className="flex items-start space-x-3">

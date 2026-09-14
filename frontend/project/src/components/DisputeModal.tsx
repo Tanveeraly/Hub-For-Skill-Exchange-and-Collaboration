@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../store/store';
 import { fileDispute } from '../store/slices/disputeSlice';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertOctagon, Send, FileText } from 'lucide-react';
+import { X, AlertOctagon, Send } from 'lucide-react';
 
 interface DisputeModalProps {
     isOpen: boolean;

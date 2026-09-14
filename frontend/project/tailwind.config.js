@@ -3,9 +3,8 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      // LinkedIn-style Corporate Color Palette
+      // LinkedIn-inspired corporate palette
       colors: {
-        // Primary - LinkedIn Navy Blue
         primary: {
           50: '#F0F7FE',
           100: '#DDEDFB',
@@ -13,13 +12,51 @@ export default {
           300: '#88BDF0',
           400: '#4D9BE6',
           500: '#2681D5',
-          600: '#0A66C2', // Main brand color
+          600: '#0A66C2',
           700: '#0959A5',
           800: '#0D4B87',
           900: '#103F6F',
           950: '#0B294A',
         },
-        // Success
+        secondary: {
+          50: '#F6F8FB',
+          100: '#E8EEF8',
+          200: '#D4E0F2',
+          300: '#B5C9E6',
+          400: '#8DA7D3',
+          500: '#6C87BF',
+          600: '#526FA8',
+          700: '#3F5C8C',
+          800: '#2E486F',
+          900: '#1F3554',
+          950: '#16263D',
+        },
+        accent: {
+          50: '#EEF6FF',
+          100: '#DCEBFF',
+          200: '#C2DCFF',
+          300: '#9CC7FF',
+          400: '#6AAAF8',
+          500: '#3E8DEB',
+          600: '#2B73D8',
+          700: '#1E5DC0',
+          800: '#184CA0',
+          900: '#153E7D',
+          950: '#102A57',
+        },
+        admin: {
+          50: '#F8FAFC',
+          100: '#F1F5F9',
+          200: '#E2E8F0',
+          300: '#CBD5E1',
+          400: '#94A3B8',
+          500: '#64748B',
+          600: '#475569',
+          700: '#334155',
+          800: '#1E293B',
+          900: '#0F172A',
+          950: '#020817',
+        },
         success: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -32,7 +69,6 @@ export default {
           800: '#166534',
           900: '#14532d',
         },
-        // Warning
         warning: {
           50: '#fffbeb',
           100: '#fef3c7',
@@ -45,7 +81,6 @@ export default {
           800: '#92400e',
           900: '#78350f',
         },
-        // Error
         error: {
           50: '#fef2f2',
           100: '#fee2e2',
@@ -58,29 +93,18 @@ export default {
           800: '#991b1b',
           900: '#7f1d1d',
         },
-        // Neutral grays (slightly cooler for corporate feel)
         neutral: {
-          50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          300: '#CBD5E1',
-          400: '#94A3B8',
-          500: '#64748B',
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
           600: '#475569',
           700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
-          950: '#020617',
-        },
-        // Admin portal accent (dark slate)
-        admin: {
-          50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
-          950: '#020617',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020817',
         },
       },
 

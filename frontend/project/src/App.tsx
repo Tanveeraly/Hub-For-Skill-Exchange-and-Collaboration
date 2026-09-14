@@ -1,6 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Navbar from "./components/Navbar.tsx";
-import AppShell from "./components/AppShell.tsx";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Landing from "./pages/Landing.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
@@ -26,7 +24,17 @@ import CareerBooster from "./pages/CareerBooster.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
 import AdminPortal from "./pages/AdminPortal.tsx";
 import SecurityDashboard from "./pages/SecurityDashboard.tsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
+import AdminUsers from "./pages/admin/AdminUsers.tsx";
+import AdminDisputes from "./pages/admin/AdminDisputes.tsx";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs.tsx";
+import AdminComplaints from "./pages/admin/AdminComplaints.tsx";
+import AdminPortfolios from "./pages/admin/AdminPortfolios.tsx";
+import AdminCertifications from "./pages/admin/AdminCertifications.tsx";
+import AdminCourses from "./pages/admin/AdminCourses.tsx";
 import Footer from "./components/Footer.tsx";
+import AppShell from "./components/layout/AppShell.tsx";
+import AdminShell from "./components/layout/AdminShell.tsx";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "./store/store.ts";
@@ -50,7 +58,7 @@ import {
 import { socket } from "./services/socket.ts";
 import axios from "axios";
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { callState, incomingCallData, remoteUser, callType, meetingInvitation } = useSelector((state: RootState) => state.call);
@@ -219,88 +227,102 @@ const App: React.FC = () => {
     };
   }, [dispatch, isAuthenticated, user, remoteUser, callType]);
 
+  const location = useLocation();
+  const publicPaths = new Set(['/','/login','/signup','/forgot-password','/test','/forgetpassword']);
+  const showFooter = publicPaths.has(location.pathname);
+
   return (
-    <Router>
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <IncomingCallModal />
-        <MeetingInvitationModal
-          isOpen={!!meetingInvitation}
-          senderName={meetingInvitation?.senderName || ''}
-          senderAvatar={meetingInvitation?.senderAvatar}
-          swapDetails={meetingInvitation?.swapDetails}
-          onAccept={() => {
-            if (meetingInvitation && user) {
-              console.log("Accepting meeting invitation from:", meetingInvitation.senderName);
+    <div className="min-h-screen bg-neutral-50">
+      <IncomingCallModal />
+      <MeetingInvitationModal
+        isOpen={!!meetingInvitation}
+        senderName={meetingInvitation?.senderName || ''}
+        senderAvatar={meetingInvitation?.senderAvatar}
+        swapDetails={meetingInvitation?.swapDetails}
+        onAccept={() => {
+          if (meetingInvitation && user) {
+            console.log("Accepting meeting invitation from:", meetingInvitation.senderName);
 
-              // Emit acceptance to backend
-              socket.emit('meeting-invite-accepted', {
-                senderId: meetingInvitation.senderId,
-                receiverId: user.id,
-                acceptorName: user.name
-              });
+            socket.emit('meeting-invite-accepted', {
+              senderId: meetingInvitation.senderId,
+              receiverId: user.id,
+              acceptorName: user.name
+            });
 
-              // Clear invitation
-              dispatch(acceptMeetingInvite());
+            dispatch(acceptMeetingInvite());
 
-              // Start the call
-              dispatch(initiateCall({
-                remoteUser: {
-                  id: meetingInvitation.senderId,
-                  name: meetingInvitation.senderName,
-                  avatarUrl: meetingInvitation.senderAvatar
-                },
-                callType: 'video'
-              }));
-            }
-          }}
-          onReject={() => {
-            if (meetingInvitation && user) {
-              console.log("Rejecting meeting invitation from:", meetingInvitation.senderName);
+            dispatch(initiateCall({
+              remoteUser: {
+                id: meetingInvitation.senderId,
+                name: meetingInvitation.senderName,
+                avatarUrl: meetingInvitation.senderAvatar
+              },
+              callType: 'video'
+            }));
+          }
+        }}
+        onReject={() => {
+          if (meetingInvitation && user) {
+            console.log("Rejecting meeting invitation from:", meetingInvitation.senderName);
 
-              socket.emit('meeting-invite-rejected', {
-                senderId: meetingInvitation.senderId,
-                receiverId: user.id,
-                reason: 'User declined the invitation'
-              });
+            socket.emit('meeting-invite-rejected', {
+              senderId: meetingInvitation.senderId,
+              receiverId: user.id,
+              reason: 'User declined the invitation'
+            });
 
-              dispatch(rejectMeetingInvite());
-            }
-          }}
+            dispatch(rejectMeetingInvite());
+          }
+        }}
+      />
+      {(callState === 'calling' || callState === 'connecting' || callState === 'connected') && (
+        <VideoCall
+          offer={incomingCallData?.offer}
+          isIncoming={callState === 'connecting' && !!incomingCallData}
         />
-        {(callState === 'calling' || callState === 'connecting' || callState === 'connected') && (
-          <VideoCall
-            offer={incomingCallData?.offer}
-            isIncoming={callState === 'connecting' && !!incomingCallData}
-          />
-        )}
-        <Routes>
-          <Route path="/" element={isAuthenticated ? <Navigate to="/home" /> : <Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/test" element={<GoogleLoginPage />} />
-          <Route path="/forgetpassword" element={<ForgotPass />} />
-          <Route path="/home" element={<ProtectedRoute><AppShell><HomeFeed /></AppShell></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><AppShell><Dashboard /></AppShell></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><AppShell><AnalyticsDashboard /></AppShell></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
-          <Route path="/profile/:userId" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
-          <Route path="/marketplace" element={<ProtectedRoute><AppShell><Marketplace /></AppShell></ProtectedRoute>} />
-          <Route path="/swaps" element={<ProtectedRoute><AppShell><SwapScheduling /></AppShell></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><AppShell><Notifications /></AppShell></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><AppShell><Messages /></AppShell></ProtectedRoute>} />
-          <Route path="/network" element={<ProtectedRoute><AppShell><Network /></AppShell></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute><AppShell><Calendar /></AppShell></ProtectedRoute>} />
-          <Route path="/career" element={<ProtectedRoute><AppShell><CareerBooster /></AppShell></ProtectedRoute>} />
-          <Route path="/admin-portal" element={<AdminRoute><AppShell><AdminPortal /></AppShell></AdminRoute>} />
-          <Route path="/admin" element={<AdminRoute><AppShell><AdminPanel /></AppShell></AdminRoute>} />
-          <Route path="/admin/security" element={<AdminRoute><AppShell><SecurityDashboard /></AppShell></AdminRoute>} />
-        </Routes>
-        <Footer />
-      </div>
-    </Router>
+      )}
+      <Routes>
+        <Route path="/" element={isAuthenticated ? <Navigate to="/home" /> : <Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/test" element={<GoogleLoginPage />} />
+        <Route path="/forgetpassword" element={<ForgotPass />} />
+
+        <Route path="/home" element={<ProtectedRoute><AppShell><HomeFeed /></AppShell></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><AppShell><Dashboard /></AppShell></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><AppShell><AnalyticsDashboard /></AppShell></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
+        <Route path="/profile/:userId" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
+        <Route path="/marketplace" element={<AppShell><Marketplace /></AppShell>} />
+        <Route path="/swaps" element={<ProtectedRoute><AppShell><SwapScheduling /></AppShell></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><AppShell><Notifications /></AppShell></ProtectedRoute>} />
+        <Route path="/messages" element={<ProtectedRoute><AppShell><Messages /></AppShell></ProtectedRoute>} />
+        <Route path="/network" element={<ProtectedRoute><AppShell><Network /></AppShell></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute><AppShell><Calendar /></AppShell></ProtectedRoute>} />
+        <Route path="/career" element={<ProtectedRoute><AppShell><CareerBooster /></AppShell></ProtectedRoute>} />
+
+        <Route path="/admin-portal" element={<AdminRoute><AdminShell><AdminPortal /></AdminShell></AdminRoute>} />
+        <Route path="/admin" element={<AdminRoute><AdminShell><AdminDashboard /></AdminShell></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><AdminShell><AdminUsers /></AdminShell></AdminRoute>} />
+        <Route path="/admin/disputes" element={<AdminRoute><AdminShell><AdminDisputes /></AdminShell></AdminRoute>} />
+        <Route path="/admin/audit-logs" element={<AdminRoute><AdminShell><AdminAuditLogs /></AdminShell></AdminRoute>} />
+        <Route path="/admin/analytics" element={<AdminRoute><AdminShell><AdminDashboard /></AdminShell></AdminRoute>} />
+        <Route path="/admin/portfolios" element={<AdminRoute><AdminShell><AdminPortfolios /></AdminShell></AdminRoute>} />
+        <Route path="/admin/certifications" element={<AdminRoute><AdminShell><AdminCertifications /></AdminShell></AdminRoute>} />
+        <Route path="/admin/complaints" element={<AdminRoute><AdminShell><AdminComplaints /></AdminShell></AdminRoute>} />
+        <Route path="/admin/courses" element={<AdminRoute><AdminShell><AdminCourses /></AdminShell></AdminRoute>} />
+        <Route path="/admin/security" element={<AdminRoute><AdminShell><SecurityDashboard /></AdminShell></AdminRoute>} />
+      </Routes>
+      {showFooter && <Footer />}
+    </div>
   );
 };
+
+const App: React.FC = () => (
+  <Router>
+    <AppContent />
+  </Router>
+);
 
 export default App;
