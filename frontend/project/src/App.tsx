@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar.tsx";
+import AppShell from "./components/AppShell.tsx";
 import Landing from "./pages/Landing.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
@@ -280,21 +281,21 @@ const App: React.FC = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/test" element={<GoogleLoginPage />} />
           <Route path="/forgetpassword" element={<ForgotPass />} />
-          <Route path="/home" element={<ProtectedRoute><HomeFeed /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/swaps" element={<ProtectedRoute><SwapScheduling /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
-          <Route path="/career" element={<ProtectedRoute><CareerBooster /></ProtectedRoute>} />
-          <Route path="/admin-portal" element={<AdminRoute><AdminPortal /></AdminRoute>} />
-          <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
-          <Route path="/admin/security" element={<AdminRoute><SecurityDashboard /></AdminRoute>} />
+          <Route path="/home" element={<ProtectedRoute><AppShell><HomeFeed /></AppShell></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><AppShell><Dashboard /></AppShell></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><AppShell><AnalyticsDashboard /></AppShell></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
+          <Route path="/profile/:userId" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
+          <Route path="/marketplace" element={<ProtectedRoute><AppShell><Marketplace /></AppShell></ProtectedRoute>} />
+          <Route path="/swaps" element={<ProtectedRoute><AppShell><SwapScheduling /></AppShell></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><AppShell><Notifications /></AppShell></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute><AppShell><Messages /></AppShell></ProtectedRoute>} />
+          <Route path="/network" element={<ProtectedRoute><AppShell><Network /></AppShell></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><AppShell><Calendar /></AppShell></ProtectedRoute>} />
+          <Route path="/career" element={<ProtectedRoute><AppShell><CareerBooster /></AppShell></ProtectedRoute>} />
+          <Route path="/admin-portal" element={<AdminRoute><AppShell><AdminPortal /></AppShell></AdminRoute>} />
+          <Route path="/admin" element={<AdminRoute><AppShell><AdminPanel /></AppShell></AdminRoute>} />
+          <Route path="/admin/security" element={<AdminRoute><AppShell><SecurityDashboard /></AppShell></AdminRoute>} />
         </Routes>
         <Footer />
       </div>
