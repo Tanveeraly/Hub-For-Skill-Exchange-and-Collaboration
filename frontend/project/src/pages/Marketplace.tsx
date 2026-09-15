@@ -93,7 +93,7 @@ export default function Marketplace() {
   const [authLoading, setAuthLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { items: reduxPosts, loading } = useSelector((state: RootState) => state.posts);
-  const currentUserId = user?.id || 0;
+  const currentUserId = Number(user?.id ?? 0);
   const [users] = useState<User[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -293,7 +293,7 @@ export default function Marketplace() {
       // Send message via API
       await dispatch(sendMessage({
         senderId: currentUserId,
-        receiverId: selectedChatUser.id,
+        receiverId: Number(selectedChatUser.id),
         content: messageText
       })).unwrap();
 
@@ -458,9 +458,26 @@ export default function Marketplace() {
   // Get current user's skills for suggestions
 
   // Process users to skills for display
-  // Process users to skills for display
   const skills = processPostsToSkills(reduxPosts);
   const featuredSkills = skills.filter((skill) => skill.isFeatured);
+
+  const marketplaceStats = [
+    {
+      label: 'Active talent',
+      value: String(new Set(skills.map((skill) => skill.userId)).size),
+      detail: 'Verified members ready to swap'
+    },
+    {
+      label: 'Open listings',
+      value: String(skills.length),
+      detail: 'Skills currently available'
+    },
+    {
+      label: 'Featured matches',
+      value: String(featuredSkills.length),
+      detail: 'High-priority community picks'
+    }
+  ];
 
   // FIXED FILTER LOGIC
   const filteredSkills = skills.filter((skill) => {
@@ -480,34 +497,43 @@ export default function Marketplace() {
     <div className="min-h-screen bg-neutral-50 pb-12">
       <NotificationToast toasts={toasts} removeToast={removeToast} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Create Listing Button */}
-        <div className="mb-6 flex justify-end">
-          <button
-            onClick={handleCreateListingClick}
-            disabled={authLoading}
-            className="flex items-center space-x-2 rounded-lg bg-primary-600 px-6 py-3 font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="w-5 h-5" />
-            <span>
-              {authLoading ? 'Loading...' : 'Create Your Listing'}
-            </span>
-          </button>
-        </div>
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">Community marketplace</p>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">Skill Marketplace</h1>
+              <p className="mt-1 text-sm text-neutral-600">Find people to learn from, collaborate with, and teach.</p>
+            </div>
 
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-primary-600">Explore the community</p>
-            <h1 className="mt-1 text-3xl font-bold text-neutral-900">Skill Marketplace</h1>
-            <p className="mt-1 text-sm text-neutral-600">Find people to learn from, collaborate with, and teach.</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className={`rounded-full border border-neutral-200 p-2.5 text-neutral-600 transition hover:bg-neutral-100 ${isRefreshing ? 'animate-spin' : ''}`}
+                title="Refresh Listings"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </button>
+              <button
+                onClick={handleCreateListingClick}
+                disabled={authLoading}
+                className="flex items-center space-x-2 rounded-lg bg-primary-600 px-5 py-2.5 font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Plus className="h-5 w-5" />
+                <span>{authLoading ? 'Loading...' : 'Create Your Listing'}</span>
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className={`p-2 rounded-full hover:bg-neutral-200 transition ${isRefreshing ? 'animate-spin' : ''}`}
-            title="Refresh Listings"
-          >
-            <RefreshCw className="w-6 h-6 text-neutral-600" />
-          </button>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {marketplaceStats.map((stat) => (
+              <div key={stat.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">{stat.label}</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">{stat.value}</p>
+                <p className="mt-1 text-[12px] text-slate-500">{stat.detail}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Create Listing Modal */}
@@ -1101,91 +1127,101 @@ function SkillCard({ skill, onViewProfile, onChatClick, onSwapClick, onReportCli
   const [isBookmarked, setIsBookmarked] = useState(skill.isBookmarked);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
+    <div className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-center space-x-3">
             {skill.userAvatar && skill.userAvatar.startsWith('http') ? (
               <img
                 src={skill.userAvatar}
                 alt={skill.userName}
-                className="w-12 h-12 rounded-full object-cover"
+                className="h-11 w-11 rounded-full object-cover"
               />
             ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold">
-                {skill.userAvatar}
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary-600 to-secondary-500 text-sm font-bold text-white">
+                {skill.userAvatar || skill.userName?.charAt(0)?.toUpperCase() || 'U'}
               </div>
             )}
-            <div>
-              <h3 className="font-semibold text-neutral-900">{skill.userName}</h3>
-              <div className="flex items-center space-x-1">
-                <Star className="w-4 h-4 text-warning-400 fill-current" />
-                <span className="text-sm font-medium text-neutral-700">{skill.rating}</span>
-                <span className="text-sm text-neutral-500">({skill.reviews})</span>
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-semibold text-neutral-900">{skill.userName}</h3>
+              <div className="mt-0.5 flex items-center space-x-1 text-xs text-neutral-500">
+                <Star className="h-3.5 w-3.5 fill-[#fbbf24] text-[#fbbf24]" />
+                <span className="font-medium text-neutral-700">{skill.rating}</span>
+                <span>({skill.reviews})</span>
               </div>
             </div>
           </div>
-          <div className="flex space-x-2">
+
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setIsBookmarked(!isBookmarked)}
-              className="text-neutral-400 hover:text-primary-600 transition"
+              className="rounded-full p-2 text-neutral-400 transition hover:bg-neutral-100 hover:text-primary-600"
+              aria-label="Toggle bookmark"
             >
-              <Bookmark
-                className={`w-5 h-5 ${isBookmarked ? 'fill-current text-primary-600' : ''}`}
-              />
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current text-primary-600' : ''}`} />
             </button>
             <button
               onClick={() => onReportClick(skill)}
-              className="text-neutral-400 hover:text-error-500 transition"
+              className="rounded-full p-2 text-neutral-400 transition hover:bg-error-50 hover:text-error-500"
               title="Report Post"
+              aria-label="Report post"
             >
-              <AlertOctagon className="w-5 h-5" />
+              <AlertOctagon className="h-4 w-4" />
             </button>
           </div>
         </div>
+      </div>
 
-        <h4 className="text-lg font-bold text-neutral-900 mb-2 group-hover:text-primary-600 transition">
-          {skill.skillTitle}
-        </h4>
+      <div className="p-5">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h4 className="text-lg font-bold text-neutral-900 group-hover:text-primary-600 transition">
+            {skill.skillTitle}
+          </h4>
+          {skill.isFeatured && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+              Featured
+            </span>
+          )}
+        </div>
 
-        <p className="text-neutral-600 text-sm mb-4 line-clamp-2">{skill.description}</p>
+        <p className="mb-4 line-clamp-2 text-sm text-neutral-600">{skill.description}</p>
 
-        <div className="flex items-center text-sm text-neutral-500 mb-4">
-          <MapPin className="w-4 h-4 mr-1" />
+        <div className="mb-4 flex items-center text-sm text-neutral-500">
+          <MapPin className="mr-1 h-4 w-4" />
           {skill.location}
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="mb-5 flex flex-wrap gap-2">
           {skill.tags.map((tag: string, index: number) => (
             <span
               key={index}
-              className="px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-xs font-medium"
+              className="rounded-full bg-primary-50 px-2.5 py-1 text-[11px] font-medium text-primary-700"
             >
               {tag}
             </span>
           ))}
         </div>
 
-        <div className="flex space-x-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => onChatClick(skill)}
-            className="flex-1 flex items-center justify-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-primary-700"
           >
-            <MessageSquare className="w-4 h-4" />
-            <span>Chat</span>
+            <MessageSquare className="h-4 w-4" />
+            Chat
           </button>
           <button
             onClick={() => onSwapClick(skill)}
-            className="flex-1 flex items-center justify-center space-x-2 bg-accent-600 text-white px-4 py-2 rounded-lg hover:bg-accent-700 transition"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-accent-700"
           >
-            <RefreshCw className="w-4 h-4" />
-            <span>Swap</span>
+            <RefreshCw className="h-4 w-4" />
+            Swap
           </button>
           <button
             onClick={() => onViewProfile(skill)}
-            className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition"
+            className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
           >
-            View Profile
+            View
           </button>
         </div>
       </div>

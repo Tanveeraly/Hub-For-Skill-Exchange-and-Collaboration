@@ -7,7 +7,16 @@ interface User {
     role?: string;
     profile?: {
         avatarUrl?: string;
+        bio?: string;
+        location?: string;
+        rating?: number | string;
+        hours?: number | string;
     };
+    skills?: Array<{
+        id?: number;
+        skillName?: string;
+        expertiseLevel?: string;
+    }>;
 }
 
 interface AuthState {
