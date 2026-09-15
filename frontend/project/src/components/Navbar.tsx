@@ -63,9 +63,13 @@ export default function Navbar() {
               <Bell className="h-4 w-4" />
             </button>
             <Link to="/profile" className="flex items-center gap-2 border-l border-neutral-200 pl-3 text-sm font-medium text-neutral-800">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700">
-                {currentUser?.name ? currentUser.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() : 'U'}
-              </div>
+              {currentUser?.profile?.avatarUrl ? (
+                <img src={currentUser.profile.avatarUrl} alt={currentUser.name || 'Profile'} className="h-8 w-8 rounded-full object-cover" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700">
+                  {currentUser?.name ? currentUser.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() : 'U'}
+                </div>
+              )}
               <span className="hidden lg:block">{currentUser?.name || 'Profile'}</span>
             </Link>
             <button onClick={handleLogout} className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50" aria-label="Logout">
