@@ -1,5 +1,3 @@
-
-import { createUser, findUserByEmail,userProfileUpdate,addPortfolio} from "../models/userModel.js";
 import { apiError } from "../utlis/apiError.js";
 import { asynHandler } from "../utlis/asyncHandler.js";
 import { ApiResponse } from "../utlis/apiRespone.js";
