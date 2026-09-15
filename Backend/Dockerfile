@@ -1,23 +1,23 @@
-# Use lightweight Node image
+# Use lightweight Node.js image
 FROM node:20-alpine
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
-# Copy only package files first (for Docker caching optimization)
+# Copy package files first for better Docker caching
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
-# Copy the rest of the application code
+# Copy application source
 COPY . .
 
-# Generate Prisma client (important)
+# Generate Prisma Client
 RUN npx prisma generate
 
-# Expose backend port
-EXPOSE 2000
+# Backend port
+EXPOSE 5000
 
-# Start development server (nodemon)
-CMD ["npm", "run", "dev"]
+# Start production server
+CMD ["npm", "start"]
