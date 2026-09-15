@@ -11,7 +11,7 @@ const ForgotPass: React.FC = () => {
     setMessage("");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/v1/auth/forgot-passwordd", {
+      const res = await axios.post("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/forgot-passwordd", {
         email,
         newPassword,
       }, {

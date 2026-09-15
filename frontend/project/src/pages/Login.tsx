@@ -35,7 +35,7 @@ export default function Login() {
 
     try {
       const res = await axios.post(
-        'http://localhost:5000/api/v1/auth/login',
+        'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/login',
         formData,
         { withCredentials: true }
       );
@@ -73,7 +73,7 @@ export default function Login() {
 
   const handleOtpVerify = async () => {
     try {
-      const res = await axios.post('http://localhost:5000/api/v1/auth/verify-otp', {
+      const res = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/verify-otp', {
         email: formData.email,
         otp,
       });

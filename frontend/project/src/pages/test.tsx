@@ -13,7 +13,7 @@ const GoogleLoginPage: React.FC = () => {
       const token = credentialResponse.credential;
 
       const res = await axios.post(
-        'http://localhost:5000/api/v1/auth/social-login',
+        'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/social-login',
         { token },
         { withCredentials: true } // send cookies
       );

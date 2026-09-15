@@ -53,7 +53,7 @@ export const fetchMessages = createAsyncThunk(
     'chat/fetchMessages',
     async ({ userId1, userId2 }: { userId1: number; userId2: number }, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/v1/message/between/${userId1}/${userId2}`, {
+            const response = await axios.get(`https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/message/between/${userId1}/${userId2}`, {
                 withCredentials: true
             });
             // Normalized response from backend now comes in .data.data
@@ -68,7 +68,7 @@ export const sendMessage = createAsyncThunk(
     'chat/sendMessage',
     async (messageData: { senderId: number; receiverId: number; content: string; attachments?: any[] }, { rejectWithValue }) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/message/send', {
+            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/message/send', {
                 senderId: messageData.senderId,
                 receiverId: messageData.receiverId,
                 messageText: messageData.content,
@@ -89,7 +89,7 @@ export const uploadFile = createAsyncThunk(
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await axios.post('http://localhost:5000/api/v1/files/upload', formData, {
+            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true
             });
@@ -104,7 +104,7 @@ export const fetchConversations = createAsyncThunk(
     'chat/fetchConversations',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get('http://localhost:5000/api/v1/message/conversations', {
+            const response = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/message/conversations', {
                 withCredentials: true
             });
             return response.data; // Assuming { success: true, data: Conversation[] }

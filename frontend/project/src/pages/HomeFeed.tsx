@@ -130,7 +130,7 @@ export default function HomeFeed() {
 
     const fetchUserProfile = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/v1/auth/getme', {
+            const res = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme', {
                 withCredentials: true
             });
             if (res.data.data) {
@@ -145,7 +145,7 @@ export default function HomeFeed() {
 
     const fetchSuggestedUsers = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/v1/auth/getAllUsersFullInfo', {
+            const res = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getAllUsersFullInfo', {
                 withCredentials: true
             });
             if (res.data.statusCode === 200) {

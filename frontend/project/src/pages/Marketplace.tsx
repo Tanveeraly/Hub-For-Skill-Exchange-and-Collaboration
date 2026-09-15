@@ -123,8 +123,8 @@ export default function Marketplace() {
       try {
         setAuthLoading(true);
         const [meRes, catRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/v1/auth/getme", { withCredentials: true }),
-          axios.get("http://localhost:5000/api/v1/posts/categories", { withCredentials: true })
+          axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", { withCredentials: true }),
+          axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/posts/categories", { withCredentials: true })
         ]);
 
         if (meRes.data?.success || meRes.data?.statusCode === 200 || meRes.data?.message === 'Success' || meRes.data?.data) {
@@ -186,7 +186,7 @@ export default function Marketplace() {
   const getCurrentUser = async () => {
     try {
       setAuthLoading(true);
-      const res = await axios.get("http://localhost:5000/api/v1/auth/getme", {
+      const res = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", {
         withCredentials: true,
       });
 

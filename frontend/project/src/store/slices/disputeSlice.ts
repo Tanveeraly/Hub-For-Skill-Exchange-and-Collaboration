@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:5000/api/v1/disputes';
+const BASE_URL = 'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/disputes';
 const config = { withCredentials: true };
 
 // ─── USER THUNKS ───

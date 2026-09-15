@@ -119,7 +119,7 @@ export const fetchCallHistory = createAsyncThunk(
     'call/fetchCallHistory',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get('http://localhost:5000/api/v1/calls/history', {
+            const response = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/calls/history', {
                 withCredentials: true
             });
             return response.data.data || response.data;
@@ -142,7 +142,7 @@ export const saveCallRecord = createAsyncThunk(
         duration?: number;
     }, { rejectWithValue }) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/calls/record', {
+            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/calls/record', {
                 ...data,
                 callType: data.callType.toUpperCase(),
                 status: data.status.toUpperCase()

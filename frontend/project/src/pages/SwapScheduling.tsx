@@ -816,11 +816,11 @@ function SwapCard({ swap, isSent, onAccept, onReject, onReschedule, onComplete, 
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await axios.post('http://localhost:5000/api/v1/files/upload', formData, {
+            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true
             });
-            await axios.post(`http://localhost:5000/api/v1/swaps/${swap.id}/attach`, response.data.data, {
+            await axios.post(`https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/swaps/${swap.id}/attach`, response.data.data, {
                 withCredentials: true
             });
             alert("File attached to agreement!");

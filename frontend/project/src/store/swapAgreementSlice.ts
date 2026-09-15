@@ -22,7 +22,7 @@ export const fetchTermsAcceptance = createAsyncThunk(
     'swapAgreement/fetchTermsAcceptance',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get('http://localhost:5000/api/v1/terms/check', {
+            const response = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/terms/check', {
                 withCredentials: true
             });
             return response.data;
@@ -38,7 +38,7 @@ export const acceptTerms = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await axios.post(
-                'http://localhost:5000/api/v1/terms/accept',
+                'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/terms/accept',
                 {},
                 { withCredentials: true }
             );

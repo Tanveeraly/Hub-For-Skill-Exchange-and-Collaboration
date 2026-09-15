@@ -448,7 +448,7 @@ export default function CareerBooster() {
                                                 formData.append('file', file);
                                                 try {
                                                     // @ts-ignore - axios might not be imported but let's assume it is or we'll import it
-                                                    const res = await axios.post('http://localhost:5000/api/v1/files/upload', formData, { withCredentials: true });
+                                                    const res = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, { withCredentials: true });
                                                     setExtCertForm({ ...extCertForm, certImage: res.data.data.url });
                                                 } catch (err) {
                                                     console.error('Upload failed', err);

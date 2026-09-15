@@ -64,7 +64,7 @@ export default function Collaboration({ partnerId, partnerName }: CollaborationP
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await axios.post('http://localhost:5000/api/v1/files/upload', formData, {
+            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true
             });

@@ -46,8 +46,8 @@ export default function AnalyticsDashboard() {
         try {
             const config = { withCredentials: true, timeout: 5000 };
             const [statsRes, trendsRes] = await Promise.allSettled([
-                axios.get('http://localhost:5000/api/v1/analytics/user-stats', config),
-                axios.get('http://localhost:5000/api/v1/analytics/trends', config)
+                axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/analytics/user-stats', config),
+                axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/analytics/trends', config)
             ]);
 
             let data: AnalyticsData;

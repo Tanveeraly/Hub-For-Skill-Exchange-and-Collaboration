@@ -72,12 +72,12 @@ export default function Dashboard() {
       setLoading(true);
 
       // Fetch all users data
-      const usersRes = await axios.get("http://localhost:5000/api/v1/auth/getAllUsersFullInfo", {
+      const usersRes = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getAllUsersFullInfo", {
         withCredentials: true,
       });
 
       // Fetch current user data
-      const currentUserRes = await axios.get("http://localhost:5000/api/v1/auth/getme", {
+      const currentUserRes = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", {
         withCredentials: true,
       });
 
@@ -102,7 +102,7 @@ export default function Dashboard() {
         const recentActivity = generateRecentActivity(users);
 
         // Fetch swaps for collaboration context
-        const swapsRes = await axios.get("http://localhost:5000/api/v1/swaps/received", { withCredentials: true });
+        const swapsRes = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/swaps/received", { withCredentials: true });
         const acceptedSwap = (swapsRes.data.data || []).find((s: any) => s.status === 'ACCEPTED');
 
         setDashboardData({

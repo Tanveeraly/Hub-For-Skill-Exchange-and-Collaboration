@@ -42,7 +42,7 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/v1/auth/register', formData);
+      const res = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/register', formData);
 
       if (res.data?.success || res.status === 201 || res.data?.statusCode === 201 || res.data?.message === "Success") {
         console.log("✅ Signup success:", res.data.message);
@@ -83,7 +83,7 @@ export default function Signup() {
       try {
     setLoading(true);
   
-    const res = await axios.post('http://localhost:5000/api/v1/auth/register', formData);
+    const res = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/register', formData);
   
     // ✅ Success case
     if (res.data?.message === "Success") {
@@ -127,7 +127,7 @@ export default function Signup() {
     console.log("OTP entered:", otp);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/v1/auth/verify-otp', {
+      const res = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/verify-otp', {
         email: formData.email,
         otp,
       });

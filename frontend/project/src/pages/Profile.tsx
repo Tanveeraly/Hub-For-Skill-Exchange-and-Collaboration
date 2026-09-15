@@ -109,7 +109,7 @@ export default function Profile() {
       setError("");
 
       const response = await axios.post(
-        `http://localhost:5000/api/v1/auth/addMultipleUserSkills/${profile.email}`,
+        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/addMultipleUserSkills/${profile.email}`,
         {
           skills: skills.map(skill => ({
             skillName: skill.name,
@@ -166,7 +166,7 @@ export default function Profile() {
       setError("");
 
       await axios.delete(
-        `http://localhost:5000/api/v1/auth/removeUserSkill/${skillId}`,
+        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/removeUserSkill/${skillId}`,
         { withCredentials: true }
       );
 
@@ -204,7 +204,7 @@ export default function Profile() {
     try {
       setLoading(true);
       setError("");
-      const response = await axios.get("http://localhost:5000/api/v1/auth/getme", {
+      const response = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", {
         withCredentials: true,
       });
 
@@ -242,7 +242,7 @@ export default function Profile() {
     try {
       console.log("Fetching user skills for:", email);
       const response = await axios.get(
-        `http://localhost:5000/api/v1/auth/getUserSkills/${email}`,
+        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getUserSkills/${email}`,
         { withCredentials: true }
       );
 
@@ -267,7 +267,7 @@ export default function Profile() {
     try {
       console.log("Fetching portfolio items for:", email);
       const response = await axios.get(
-        `http://localhost:5000/api/v1/auth/getUserPortfolios/${email}`,
+        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getUserPortfolios/${email}`,
         { withCredentials: true }
       );
 
@@ -297,7 +297,7 @@ export default function Profile() {
 
   const fetchUserListings = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/v1/posts/my-posts", {
+      const response = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/posts/my-posts", {
         withCredentials: true
       });
       if (response.data.statusCode === 200 || response.data.success) {
@@ -415,7 +415,7 @@ export default function Profile() {
       formData.append("profileVisibility", profileVisibility);
 
       await axios.post(
-        `http://localhost:5000/api/v1/auth/update-profile/${profile.email}`,
+        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/update-profile/${profile.email}`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -485,7 +485,7 @@ export default function Profile() {
       });
 
       const response = await axios.post(
-        `http://localhost:5000/api/v1/auth/addPortfolio/${profile.email}`,
+        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/addPortfolio/${profile.email}`,
         formData,
         {
           headers: {

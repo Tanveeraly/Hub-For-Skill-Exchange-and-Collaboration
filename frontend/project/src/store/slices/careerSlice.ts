@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:5000/api/v1/career';
+const BASE_URL = 'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/career';
 const config = { withCredentials: true };
 
 export const fetchCareerProfile = createAsyncThunk('career/fetchProfile', async (_, { rejectWithValue }) => {
