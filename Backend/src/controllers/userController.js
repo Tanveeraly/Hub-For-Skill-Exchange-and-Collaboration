@@ -119,10 +119,11 @@ const loginUser = asynHandler(async (req, res, next) => {
     user.id
   );
 
+  const isSecure = process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https";
   const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax",
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
@@ -210,10 +211,11 @@ const logoutUser = asynHandler(async (req, res, next) => {
     data: { refreshToken: null },
   });
 
+  const isSecure = process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https";
   const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax",
     path: "/",
   };
 
@@ -284,10 +286,11 @@ const socialLogin = asynHandler(async (req, res, next) => {
   // 4️⃣ Generate tokens
   const { accessToken, refreshToken } = await generateRefreshAndAccessToken(user.id);
 
+  const isSecure = process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https";
   const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax",
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
@@ -304,7 +307,7 @@ const socialLogin = asynHandler(async (req, res, next) => {
     metadata: { provider: 'google' },
   });
 
-  // 5️⃣ Send response with cookies
+  // 5️⃣ Send response with cookies AND tokens in JSON
   return res
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
@@ -319,6 +322,8 @@ const socialLogin = asynHandler(async (req, res, next) => {
         avatarUrl: picture,
         provider: user.provider,
         providerId: user.providerId,
+        accessToken,
+        refreshToken,
       }, "Login successful")
     );
 });

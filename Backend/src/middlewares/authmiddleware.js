@@ -15,7 +15,10 @@ const verifyjwt = asynHandler(async (req, res, next) => {
     let token = req.cookies?.accessToken || null;
 
     if (!token && req.headers.authorization?.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
+      const parts = req.headers.authorization.split(" ");
+      if (parts[1] && parts[1] !== "undefined" && parts[1] !== "null") {
+        token = parts[1];
+      }
     }
 
     if (!token) {
@@ -48,7 +51,7 @@ const verifyjwt = asynHandler(async (req, res, next) => {
         console.log("Access token expired, attempting to refresh...");
 
         const refreshToken =
-          req.cookies?.refreshToken || req.cookies?.refreshtoken;
+          req.cookies?.refreshToken || req.cookies?.refreshtoken || req.headers["x-refresh-token"];
 
         if (!refreshToken) {
           return next(
@@ -77,13 +80,15 @@ const verifyjwt = asynHandler(async (req, res, next) => {
           { expiresIn: "15m" }
         );
 
+        const isSecure = process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https";
         res.cookie("accessToken", newAccessToken, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+          secure: isSecure,
+          sameSite: isSecure ? "none" : "lax",
           path: "/",
           maxAge: 15 * 60 * 1000,
         });
+        res.setHeader("x-access-token", newAccessToken);
 
         req.user = user;
         next();

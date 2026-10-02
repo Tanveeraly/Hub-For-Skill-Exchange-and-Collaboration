@@ -31,8 +31,16 @@ export default function GoogleAuthButton({ setSuccess, setError }: GoogleAuthBut
       if (res.status === 200) {
         console.log('Google login successful:', res.data);
 
-        setSuccess('Logged in with Google successfully!');
         const user = res.data.data || res.data.user;
+        const accessToken = res.data.data?.accessToken || res.data.accessToken || res.data.token;
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+        }
+        if (res.data.data?.refreshToken || res.data.refreshToken) {
+          localStorage.setItem('refreshToken', res.data.data?.refreshToken || res.data.refreshToken);
+        }
+
+        setSuccess('Logged in with Google successfully!');
         dispatch(setUser(user));
         if (user.role === 'ADMIN') {
           navigate('/admin-portal');

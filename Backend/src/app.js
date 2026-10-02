@@ -24,17 +24,28 @@ import disputeRouter from "./routes/dispute.routes.js";
 import securityRouter from "./routes/security.routes.js";
 const app = express();
 
-// Normalize CORS origin by removing trailing slash
-const corsOrigin = process.env.CORS_ORIGIN?.replace(/\/$/, '') || "http://localhost:5173";
+// CORS Configuration supporting local & deployed frontend with credentials
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // Allow any requesting origin while reflecting it back for credentials compatibility
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "x-refresh-token",
+      "x-access-token",
+    ],
+    exposedHeaders: ["set-cookie", "x-access-token"],
+  })
+);
 
-app.use(cors(
-    { origin: corsOrigin, credentials: true }  
-));
-app.use((req, res, next) => {
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-    res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
-    next();
-});
 app.use(express.json());
 app.use(cookieParser());
 

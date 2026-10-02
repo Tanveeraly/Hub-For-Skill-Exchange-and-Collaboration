@@ -52,6 +52,13 @@ export default function Login() {
       if (res.data.success) {
         setSuccess('Login successful!');
         const user = res.data.data || res.data.user;
+        const accessToken = res.data.data?.accessToken || res.data.accessToken || res.data.token;
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+        }
+        if (res.data.data?.refreshToken || res.data.refreshToken) {
+          localStorage.setItem('refreshToken', res.data.data?.refreshToken || res.data.refreshToken);
+        }
         dispatch(setUser(user));
         
         setTimeout(() => {
