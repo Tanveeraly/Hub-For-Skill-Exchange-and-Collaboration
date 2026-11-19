@@ -209,9 +209,12 @@ const callSlice = createSlice({
 
         // Call connected (WebRTC established)
         callConnected: (state) => {
+            // Ignore repeats (both 'track' and 'connected' events report this).
+            if (state.callState === 'connected') return;
             state.callState = 'connected';
             state.callStartTime = Date.now();
-            state.incomingCallData = null;
+            // Keep incomingCallData until the call ends: the call window uses it to
+            // remember it is the answering side. Clearing it here restarted the call.
         },
 
         // Reject an incoming call

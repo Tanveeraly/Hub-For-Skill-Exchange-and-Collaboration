@@ -12,7 +12,7 @@ import {
     setScreenSharing,
     setRemoteScreenSharing,
 } from '../store/slices/callSlice';
-import { socket, rtcConfig } from '../services/socket';
+import { socket, rtcConfig, hasTurnServer, setIceSink, clearIceBuffer, sendIceCandidate } from '../services/socket';
 import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, Maximize2, Minimize2, MonitorUp, MonitorX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -20,6 +20,10 @@ interface VideoCallProps {
     offer?: RTCSessionDescriptionInit;
     isIncoming?: boolean;
 }
+
+const NETWORK_FAIL_MESSAGE = hasTurnServer
+    ? 'Could not connect the call. Check your internet connection and try again.'
+    : 'Could not connect the call. This usually happens when you are on different networks (for example mobile data and Wi-Fi). Try both being on the same Wi-Fi, or ask the admin to add a TURN server.';
 
 export default function VideoCall({ offer, isIncoming = false }: VideoCallProps) {
     const dispatch = useDispatch<AppDispatch>();
@@ -30,337 +34,289 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
 
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
+    const remoteAudioRef = useRef<HTMLAudioElement>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
+    const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
 
+    // The role and peer of this call are fixed when the window opens.
+    // Reading them from props/state later is what used to restart the call.
+    const roleRef = useRef({ isIncoming, offer, remoteUser, user, callType });
+
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [callDuration, setCallDuration] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
+    const [connectionStatus, setConnectionStatus] = useState<string>('Connecting…');
     const [error, setError] = useState<string | null>(null);
 
-    // Screen sharing refs
+    // Screen sharing
     const screenPeerConnectionRef = useRef<RTCPeerConnection | null>(null);
     const screenStreamRef = useRef<MediaStream | null>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const remoteScreenVideoRef = useRef<HTMLVideoElement>(null);
+    const pendingScreenIceRef = useRef<RTCIceCandidateInit[]>([]);
+    const [remoteScreenStream, setRemoteScreenStream] = useState<MediaStream | null>(null);
 
-    // Format call duration
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Cleanup function
-    const cleanup = useCallback(() => {
-        if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => track.stop());
-            localStreamRef.current = null;
-        }
-        if (peerConnectionRef.current) {
-            peerConnectionRef.current.close();
-            peerConnectionRef.current = null;
-        }
-        if (localVideoRef.current) {
-            localVideoRef.current.srcObject = null;
-        }
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = null;
+    // ---------- ICE helpers ----------
+    // Candidates can only be added after the remote description is set. Queue them until then.
+    const addRemoteIce = useCallback((candidate: RTCIceCandidateInit) => {
+        const pc = peerConnectionRef.current;
+        if (pc && pc.remoteDescription) {
+            pc.addIceCandidate(candidate).catch((err) => console.warn('Ignoring ICE candidate:', err?.message));
+        } else {
+            pendingIceRef.current.push(candidate);
         }
     }, []);
 
-    // Screen sharing cleanup
+    const flushRemoteIce = useCallback(() => {
+        const pc = peerConnectionRef.current;
+        if (!pc || !pc.remoteDescription) return;
+        const queued = pendingIceRef.current;
+        pendingIceRef.current = [];
+        queued.forEach((c) => pc.addIceCandidate(c).catch((err) => console.warn('Ignoring ICE candidate:', err?.message)));
+    }, []);
+
+    const addScreenIce = useCallback((candidate: RTCIceCandidateInit) => {
+        const pc = screenPeerConnectionRef.current;
+        if (pc && pc.remoteDescription) {
+            pc.addIceCandidate(candidate).catch(() => undefined);
+        } else {
+            pendingScreenIceRef.current.push(candidate);
+        }
+    }, []);
+
+    const flushScreenIce = useCallback(() => {
+        const pc = screenPeerConnectionRef.current;
+        if (!pc || !pc.remoteDescription) return;
+        const queued = pendingScreenIceRef.current;
+        pendingScreenIceRef.current = [];
+        queued.forEach((c) => pc.addIceCandidate(c).catch(() => undefined));
+    }, []);
+
+    // ---------- cleanup ----------
+    const cleanup = useCallback(() => {
+        localStreamRef.current?.getTracks().forEach((track) => track.stop());
+        localStreamRef.current = null;
+        peerConnectionRef.current?.close();
+        peerConnectionRef.current = null;
+        pendingIceRef.current = [];
+        setRemoteStream(null);
+        clearIceBuffer('call');
+    }, []);
+
     const cleanupScreenShare = useCallback(() => {
-        if (screenStreamRef.current) {
-            screenStreamRef.current.getTracks().forEach(track => track.stop());
-            screenStreamRef.current = null;
-        }
-        if (screenPeerConnectionRef.current) {
-            screenPeerConnectionRef.current.close();
-            screenPeerConnectionRef.current = null;
-        }
-        if (screenVideoRef.current) {
-            screenVideoRef.current.srcObject = null;
-        }
-        if (remoteScreenVideoRef.current) {
-            remoteScreenVideoRef.current.srcObject = null;
-        }
+        screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+        screenStreamRef.current = null;
+        screenPeerConnectionRef.current?.close();
+        screenPeerConnectionRef.current = null;
+        pendingScreenIceRef.current = [];
+        if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
+        clearIceBuffer('screen');
         dispatch(setScreenSharing(false));
     }, [dispatch]);
 
-    // Initialize WebRTC
-    const initializeCall = useCallback(async () => {
-        try {
-            setConnectionStatus('Getting media access...');
+    // ---------- peer connection ----------
+    const createPeer = useCallback((stream: MediaStream, audioOnly: boolean) => {
+        const { remoteUser: peer } = roleRef.current;
+        const pc = new RTCPeerConnection(rtcConfig);
+        peerConnectionRef.current = pc;
 
-            // Request media permissions
-            const constraints = {
-                audio: true,
-                video: callType === 'video'
-            };
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            localStreamRef.current = stream;
-
-            if (localVideoRef.current) {
-                localVideoRef.current.srcObject = stream;
-            }
-
-            setConnectionStatus('Creating connection...');
-
-            // Create peer connection
-            const pc = new RTCPeerConnection(rtcConfig);
-            peerConnectionRef.current = pc;
-
-            // Add local tracks to peer connection
-            stream.getTracks().forEach(track => {
-                pc.addTrack(track, stream);
+        pc.ontrack = (event) => {
+            // Some browsers send tracks without a stream; build one so audio still plays.
+            const incoming = event.streams[0] ?? new MediaStream([event.track]);
+            setRemoteStream((prev) => {
+                if (prev && prev.id === incoming.id) return prev;
+                if (prev && !event.streams[0]) {
+                    prev.addTrack(event.track);
+                    return new MediaStream(prev.getTracks());
+                }
+                return incoming;
             });
+        };
 
-            // Handle incoming tracks
-            pc.ontrack = (event) => {
-                if (remoteVideoRef.current && event.streams[0]) {
-                    remoteVideoRef.current.srcObject = event.streams[0];
-                    setConnectionStatus('Connected');
+        pc.onicecandidate = (event) => {
+            if (event.candidate && peer) sendIceCandidate('call', peer.id, event.candidate);
+        };
+
+        pc.onconnectionstatechange = () => {
+            switch (pc.connectionState) {
+                case 'connecting':
+                    setConnectionStatus('Connecting…');
+                    break;
+                case 'connected':
+                    setError(null);
+                    setConnectionStatus(audioOnly ? 'Connected (audio only)' : 'Connected');
                     dispatch(callConnected());
-                }
-            };
+                    break;
+                case 'disconnected':
+                    // Often recovers by itself on a brief network blip.
+                    setConnectionStatus('Reconnecting…');
+                    break;
+                case 'failed':
+                    setError(NETWORK_FAIL_MESSAGE);
+                    dispatch(setCallError({ message: 'Connection failed', code: 'CONNECTION_FAILED' }));
+                    break;
+            }
+        };
 
-            // Handle ICE candidates
-            pc.onicecandidate = (event) => {
-                if (event.candidate && remoteUser) {
-                    socket.emit('ice-candidate', {
-                        targetUserId: remoteUser.id,
-                        candidate: event.candidate
-                    });
-                }
-            };
+        return pc;
+    }, [dispatch]);
 
-            // Handle connection state changes
-            pc.onconnectionstatechange = () => {
-                switch (pc.connectionState) {
-                    case 'connected':
-                        setConnectionStatus('Connected');
-                        dispatch(callConnected());
-                        break;
-                    case 'disconnected':
-                        setConnectionStatus('Disconnected');
-                        break;
-                    case 'failed':
-                        setError('Connection failed. Please try again.');
-                        dispatch(setCallError({ message: 'Connection failed', code: 'CONNECTION_FAILED' }));
-                        break;
-                    case 'closed':
-                        setConnectionStatus('Call ended');
-                        break;
-                }
-            };
+    const describeMediaError = (err: any, wantedVideo: boolean) => {
+        switch (err?.name) {
+            case 'NotAllowedError':
+                return { code: 'PERMISSION_DENIED', message: 'Camera/microphone access was blocked. Allow it in your browser (the icon in the address bar) and try again.' };
+            case 'NotFoundError':
+                return { code: 'DEVICE_NOT_FOUND', message: 'No camera or microphone was found. Connect one and try again.' };
+            case 'NotReadableError':
+                return {
+                    code: 'DEVICE_IN_USE',
+                    message: wantedVideo
+                        ? 'Your camera or microphone is being used by another app or tab. Close it, or use “Try audio only”.'
+                        : 'Your microphone is being used by another app. Close it and try again.',
+                };
+            case 'OverconstrainedError':
+                return { code: 'DEVICE_CONSTRAINTS', message: 'Your camera or microphone does not support the requested settings.' };
+            default:
+                return { code: 'MEDIA_ERROR', message: 'Could not access your camera or microphone.' };
+        }
+    };
 
-            // Handle ICE connection state
-            pc.oniceconnectionstatechange = () => {
-                if (pc.iceConnectionState === 'failed') {
-                    setError('ICE connection failed. Network issue detected.');
-                }
-            };
+    // ---------- start the call (runs once) ----------
+    const startCall = useCallback(async (audioOnly = false) => {
+        const { isIncoming: incoming, offer: remoteOffer, remoteUser: peer, user: me, callType: type } = roleRef.current;
+        if (!peer) return;
+        const wantVideo = !audioOnly && type === 'video';
 
-            if (isIncoming && offer) {
-                // Answer incoming call
-                setConnectionStatus('Answering call...');
-                await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        try {
+            setError(null);
+            setConnectionStatus('Getting camera and microphone…');
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: wantVideo });
+            localStreamRef.current = stream;
+            if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+            const pc = createPeer(stream, !wantVideo);
+
+            // Deliver candidates that arrived while the call was ringing.
+            setIceSink('call', (c, from) => { if (from === Number(peer.id)) addRemoteIce(c); }, Number(peer.id));
+
+            if (incoming && remoteOffer) {
+                setConnectionStatus('Answering…');
+                await pc.setRemoteDescription(new RTCSessionDescription(remoteOffer));
+                flushRemoteIce();
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
-
-                socket.emit('call-accepted', {
-                    callerId: remoteUser?.id,
-                    receiverId: user?.id,
-                    answer: answer
-                });
+                socket.emit('call-accepted', { callerId: peer.id, receiverId: me?.id, answer });
             } else {
-                // Create offer for outgoing call
-                setConnectionStatus('Calling...');
+                setConnectionStatus('Ringing…');
                 const offerDesc = await pc.createOffer();
                 await pc.setLocalDescription(offerDesc);
-
                 socket.emit('call-user', {
-                    callerId: user?.id,
-                    receiverId: remoteUser?.id,
-                    callerName: user?.name || 'User',
-                    callerAvatar: user?.profile?.avatarUrl,
-                    callType: callType,
-                    offer: offerDesc
+                    callerId: me?.id,
+                    receiverId: peer.id,
+                    callerName: me?.name || 'User',
+                    callerAvatar: me?.profile?.avatarUrl,
+                    callType: wantVideo ? 'video' : 'audio',
+                    offer: offerDesc,
                 });
             }
-
         } catch (err: any) {
-            console.error('Error initializing call:', err);
-            let errorMessage = 'Failed to access camera/microphone.';
-            let errorCode = 'MEDIA_ERROR';
-
-            if (err.name === 'NotAllowedError') {
-                errorMessage = 'Camera/microphone access was denied. Please allow access in your browser settings and try again.';
-                errorCode = 'PERMISSION_DENIED';
-            } else if (err.name === 'NotFoundError') {
-                errorMessage = 'No camera/microphone found. Please connect a device and try again.';
-                errorCode = 'DEVICE_NOT_FOUND';
-            } else if (err.name === 'NotReadableError') {
-                errorMessage = callType === 'video'
-                    ? 'Camera/microphone is in use by another application or browser tab. Try closing other apps using the camera, or use Audio Call instead.'
-                    : 'Microphone is in use by another application. Please close other apps using the microphone and try again.';
-                errorCode = 'DEVICE_IN_USE';
-            } else if (err.name === 'OverconstrainedError') {
-                errorMessage = 'Camera/microphone settings are not supported. Please try a different device.';
-                errorCode = 'DEVICE_CONSTRAINTS';
-            } else if (err.name === 'AbortError') {
-                errorMessage = 'Media access was interrupted. Please try again.';
-                errorCode = 'MEDIA_ABORTED';
-            }
-
-            setError(errorMessage);
-            dispatch(setCallError({ message: errorMessage, code: errorCode }));
+            console.error('Error starting call:', err);
+            const { code, message } = describeMediaError(err, wantVideo);
+            setError(message);
+            dispatch(setCallError({ message, code }));
         }
-    }, [callType, dispatch, isIncoming, offer, remoteUser, user]);
+    }, [addRemoteIce, createPeer, dispatch, flushRemoteIce]);
 
-    // Retry with audio only (for when video fails)
+    // Retry without the camera (only offered on the calling side).
     const retryWithAudioOnly = useCallback(async () => {
-        setError(null);
-        setConnectionStatus('Retrying with audio only...');
+        cleanup();
+        await startCall(true);
+    }, [cleanup, startCall]);
 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            localStreamRef.current = stream;
-
-            if (localVideoRef.current) {
-                localVideoRef.current.srcObject = stream;
-            }
-
-            setConnectionStatus('Creating connection...');
-
-            const pc = new RTCPeerConnection(rtcConfig);
-            peerConnectionRef.current = pc;
-
-            stream.getTracks().forEach(track => {
-                pc.addTrack(track, stream);
-            });
-
-            pc.ontrack = (event) => {
-                if (remoteVideoRef.current && event.streams[0]) {
-                    remoteVideoRef.current.srcObject = event.streams[0];
-                    setConnectionStatus('Connected');
-                    dispatch(callConnected());
-                }
-            };
-
-            pc.onicecandidate = (event) => {
-                if (event.candidate && remoteUser) {
-                    socket.emit('ice-candidate', {
-                        targetUserId: remoteUser.id,
-                        candidate: event.candidate
-                    });
-                }
-            };
-
-            pc.onconnectionstatechange = () => {
-                if (pc.connectionState === 'connected') {
-                    setConnectionStatus('Connected (Audio Only)');
-                    dispatch(callConnected());
-                } else if (pc.connectionState === 'failed') {
-                    setError('Connection failed. Please try again.');
-                }
-            };
-
-            setConnectionStatus('Calling (Audio Only)...');
-            const offerDesc = await pc.createOffer();
-            await pc.setLocalDescription(offerDesc);
-
-            socket.emit('call-user', {
-                callerId: user?.id,
-                receiverId: remoteUser?.id,
-                callerName: user?.name || 'User',
-                callerAvatar: user?.profile?.avatarUrl,
-                callType: 'audio',
-                offer: offerDesc
-            });
-
-        } catch (retryErr: any) {
-            console.error('Audio-only retry failed:', retryErr);
-            setError('Unable to access microphone. Please check your device permissions.');
-        }
-    }, [dispatch, remoteUser, user]);
-
-    // Initialize call on mount
     useEffect(() => {
-        if (callState === 'calling' || callState === 'connecting') {
-            initializeCall();
-        }
-
+        startCall();
         return () => {
+            setIceSink('call', null);
+            setIceSink('screen', null);
             cleanup();
+            screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+            screenPeerConnectionRef.current?.close();
         };
-    }, [callState, initializeCall, cleanup]);
+        // Mount/unmount only: this window lives for exactly one call.
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Handle socket events
+    // ---------- attach remote media ----------
+    useEffect(() => {
+        if (remoteAudioRef.current) {
+            remoteAudioRef.current.srcObject = remoteStream;
+            if (remoteStream) remoteAudioRef.current.play().catch(() => setConnectionStatus('Tap anywhere to turn on sound'));
+        }
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+            if (remoteStream) remoteVideoRef.current.play().catch(() => undefined);
+        }
+    }, [remoteStream, callType]);
+
+    useEffect(() => {
+        if (remoteScreenVideoRef.current) remoteScreenVideoRef.current.srcObject = remoteScreenStream;
+    }, [remoteScreenStream, remoteScreenSharing]);
+
+    // Browsers may block sound until the user interacts with the page.
+    useEffect(() => {
+        const unlock = () => remoteAudioRef.current?.play().catch(() => undefined);
+        document.addEventListener('click', unlock);
+        return () => document.removeEventListener('click', unlock);
+    }, []);
+
+    // ---------- signalling ----------
     useEffect(() => {
         const handleCallAccepted = async ({ answer }: { answer: RTCSessionDescriptionInit }) => {
+            const pc = peerConnectionRef.current;
+            if (!pc || pc.signalingState !== 'have-local-offer') return;
             try {
-                if (peerConnectionRef.current) {
-                    await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-                    setConnectionStatus('Connected');
-                }
+                setConnectionStatus('Connecting…');
+                await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                flushRemoteIce();
             } catch (err) {
-                console.error('Error handling call accepted:', err);
-                setError('Failed to establish connection.');
-            }
-        };
-
-        const handleIceCandidate = async ({ candidate }: { candidate: RTCIceCandidateInit }) => {
-            try {
-                if (peerConnectionRef.current && candidate) {
-                    await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-                }
-            } catch (err) {
-                console.error('Error adding ICE candidate:', err);
+                console.error('Error applying answer:', err);
+                setError('Could not connect the call. Please try again.');
             }
         };
 
         const handleCallEnded = () => {
             cleanup();
+            cleanupScreenShare();
             dispatch(endCall());
         };
 
-        socket.on('call-accepted', handleCallAccepted);
-        socket.on('ice-candidate', handleIceCandidate);
-        socket.on('call-ended', handleCallEnded);
-
-        // Screen sharing events
-        const handleScreenShareOffer = async ({ senderId, offer }: { senderId: number; offer: RTCSessionDescriptionInit }) => {
+        // Screen sharing uses its own connection and its own ICE channel.
+        const handleScreenShareOffer = async ({ senderId, offer: screenOffer }: { senderId: number; offer: RTCSessionDescriptionInit }) => {
             try {
+                screenPeerConnectionRef.current?.close();
                 const screenPc = new RTCPeerConnection(rtcConfig);
                 screenPeerConnectionRef.current = screenPc;
-
                 screenPc.ontrack = (event) => {
-                    if (remoteScreenVideoRef.current && event.streams[0]) {
-                        remoteScreenVideoRef.current.srcObject = event.streams[0];
-                        dispatch(setRemoteScreenSharing(true));
-                    }
+                    setRemoteScreenStream(event.streams[0] ?? new MediaStream([event.track]));
+                    dispatch(setRemoteScreenSharing(true));
                 };
-
                 screenPc.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        socket.emit('ice-candidate', {
-                            targetUserId: senderId,
-                            candidate: event.candidate
-                        });
-                    }
+                    if (event.candidate) sendIceCandidate('screen', senderId, event.candidate);
                 };
-
-                await screenPc.setRemoteDescription(new RTCSessionDescription(offer));
+                setIceSink('screen', (c) => addScreenIce(c), Number(senderId));
+                await screenPc.setRemoteDescription(new RTCSessionDescription(screenOffer));
+                flushScreenIce();
                 const answer = await screenPc.createAnswer();
                 await screenPc.setLocalDescription(answer);
-
-                socket.emit('screen-share-answer', {
-                    targetUserId: senderId,
-                    answer
-                });
+                socket.emit('screen-share-answer', { targetUserId: senderId, answer });
             } catch (err) {
                 console.error('Error handling screen share offer:', err);
             }
@@ -368,25 +324,24 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
 
         const handleScreenShareAnswer = async ({ answer }: { answer: RTCSessionDescriptionInit }) => {
             try {
-                if (screenPeerConnectionRef.current) {
-                    await screenPeerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+                const pc = screenPeerConnectionRef.current;
+                if (pc && pc.signalingState === 'have-local-offer') {
+                    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                    flushScreenIce();
                 }
             } catch (err) {
                 console.error('Error handling screen share answer:', err);
             }
         };
 
-        const handleRemoteScreenShareStarted = () => {
-            dispatch(setRemoteScreenSharing(true));
-        };
-
+        const handleRemoteScreenShareStarted = () => dispatch(setRemoteScreenSharing(true));
         const handleRemoteScreenShareStopped = () => {
             dispatch(setRemoteScreenSharing(false));
-            if (remoteScreenVideoRef.current) {
-                remoteScreenVideoRef.current.srcObject = null;
-            }
+            setRemoteScreenStream(null);
         };
 
+        socket.on('call-accepted', handleCallAccepted);
+        socket.on('call-ended', handleCallEnded);
         socket.on('screen-share-offer', handleScreenShareOffer);
         socket.on('screen-share-answer', handleScreenShareAnswer);
         socket.on('remote-screen-share-started', handleRemoteScreenShareStarted);
@@ -394,19 +349,17 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
 
         return () => {
             socket.off('call-accepted', handleCallAccepted);
-            socket.off('ice-candidate', handleIceCandidate);
             socket.off('call-ended', handleCallEnded);
             socket.off('screen-share-offer', handleScreenShareOffer);
             socket.off('screen-share-answer', handleScreenShareAnswer);
             socket.off('remote-screen-share-started', handleRemoteScreenShareStarted);
             socket.off('remote-screen-share-stopped', handleRemoteScreenShareStopped);
         };
-    }, [cleanup, dispatch]);
+    }, [addScreenIce, cleanup, cleanupScreenShare, dispatch, flushRemoteIce, flushScreenIce]);
 
     // Call duration timer
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-
+        let interval: ReturnType<typeof setInterval> | undefined;
         if (callState === 'connected' && callStartTime) {
             interval = setInterval(() => {
                 const duration = Math.floor((Date.now() - callStartTime) / 1000);
@@ -414,143 +367,102 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                 dispatch(updateCallDuration(duration));
             }, 1000);
         }
-
         return () => {
             if (interval) clearInterval(interval);
         };
     }, [callState, callStartTime, dispatch]);
 
-    // Toggle mute handler
+    // Give up if nobody answers within 45 seconds.
+    useEffect(() => {
+        if (callState !== 'calling') return;
+        const t = setTimeout(() => {
+            const peer = roleRef.current.remoteUser;
+            if (peer) socket.emit('call-cancelled', { receiverId: peer.id });
+            setError(`${peer?.name || 'They'} didn't answer.`);
+            setConnectionStatus('No answer');
+        }, 45000);
+        return () => clearTimeout(t);
+    }, [callState]);
+
     const handleToggleMute = () => {
-        if (localStreamRef.current) {
-            const audioTrack = localStreamRef.current.getAudioTracks()[0];
-            if (audioTrack) {
-                audioTrack.enabled = isMuted;
-                dispatch(toggleMute());
-            }
+        const audioTrack = localStreamRef.current?.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = isMuted;
+            dispatch(toggleMute());
         }
     };
 
-    // Toggle camera handler
     const handleToggleCamera = () => {
-        if (localStreamRef.current) {
-            const videoTrack = localStreamRef.current.getVideoTracks()[0];
-            if (videoTrack) {
-                videoTrack.enabled = isCameraOff;
-                dispatch(toggleCamera());
-            }
+        const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = isCameraOff;
+            dispatch(toggleCamera());
         }
     };
 
-    // End call handler
     const handleEndCall = () => {
-        // Save call record if connected
         if (callState === 'connected' && remoteUser && user) {
             dispatch(saveCallRecord({
-                callerId: user.id,
+                callerId: Number(user.id),
                 receiverId: Number(remoteUser.id),
                 callType: callType || 'audio',
                 status: 'completed',
-                duration: callDuration
+                duration: callDuration,
             }));
         }
-
-        // Notify remote user
         if (remoteUser) {
+            if (callState === 'calling') {
+                socket.emit('call-cancelled', { receiverId: remoteUser.id });
+            }
             socket.emit('call-ended', {
                 targetUserId: remoteUser.id,
                 callerId: user?.id,
                 receiverId: remoteUser.id,
                 duration: callDuration,
-                callType: callType
+                callType,
             });
         }
-
         cleanup();
         cleanupScreenShare();
         dispatch(endCall());
     };
 
-    // Start screen sharing
     const handleStartScreenShare = async () => {
+        if (!remoteUser) return;
         try {
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
-                audio: false
-            } as MediaStreamConstraints);
-
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false } as MediaStreamConstraints);
             screenStreamRef.current = screenStream;
+            if (screenVideoRef.current) screenVideoRef.current.srcObject = screenStream;
 
-            if (screenVideoRef.current) {
-                screenVideoRef.current.srcObject = screenStream;
-            }
-
-            // Create a new peer connection for screen sharing
             const screenPc = new RTCPeerConnection(rtcConfig);
             screenPeerConnectionRef.current = screenPc;
-
-            // Add screen tracks
-            screenStream.getTracks().forEach(track => {
-                screenPc.addTrack(track, screenStream);
-            });
-
-            // Handle ICE candidates for screen share
+            screenStream.getTracks().forEach((track) => screenPc.addTrack(track, screenStream));
             screenPc.onicecandidate = (event) => {
-                if (event.candidate && remoteUser) {
-                    socket.emit('ice-candidate', {
-                        targetUserId: remoteUser.id,
-                        candidate: event.candidate
-                    });
-                }
+                if (event.candidate) sendIceCandidate('screen', remoteUser.id, event.candidate);
             };
+            setIceSink('screen', (c) => addScreenIce(c), Number(remoteUser.id));
 
-            // Create and send offer
-            const offer = await screenPc.createOffer();
-            await screenPc.setLocalDescription(offer);
-
-            socket.emit('screen-share-offer', {
-                targetUserId: remoteUser?.id,
-                offer
-            });
-
-            socket.emit('screen-share-started', {
-                userId: user?.id,
-                targetUserId: remoteUser?.id
-            });
-
+            const screenOffer = await screenPc.createOffer();
+            await screenPc.setLocalDescription(screenOffer);
+            socket.emit('screen-share-offer', { targetUserId: remoteUser.id, offer: screenOffer });
+            socket.emit('screen-share-started', { userId: user?.id, targetUserId: remoteUser.id });
             dispatch(setScreenSharing(true));
 
-            // Handle when user stops sharing via browser UI
-            screenStream.getVideoTracks()[0].onended = () => {
-                handleStopScreenShare();
-            };
-
+            screenStream.getVideoTracks()[0].onended = () => handleStopScreenShare();
         } catch (err: any) {
             console.error('Error starting screen share:', err);
-            if (err.name === 'NotAllowedError') {
-                setError('Screen sharing permission denied');
-            } else {
-                setError('Failed to start screen sharing');
-            }
+            if (err?.name !== 'NotAllowedError') setError('Could not start screen sharing.');
         }
     };
 
-    // Stop screen sharing
     const handleStopScreenShare = () => {
         cleanupScreenShare();
-
         if (remoteUser) {
-            socket.emit('screen-share-stopped', {
-                userId: user?.id,
-                targetUserId: remoteUser.id
-            });
+            socket.emit('screen-share-stopped', { userId: user?.id, targetUserId: remoteUser.id });
         }
     };
 
-    // Toggle fullscreen
-    const toggleFullscreen = () => {
-        setIsFullscreen(!isFullscreen);
-    };
+    const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
 
     if (callState === 'idle') return null;
 
@@ -564,15 +476,31 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                     }`}
             >
                 <div className={`relative w-full h-full ${isFullscreen ? '' : 'rounded-xl overflow-hidden'}`}>
+                    {/* The other person's sound plays here, for audio and video calls alike. */}
+                    <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
                     {/* Remote Video (Full screen) */}
                     <div className="absolute inset-0 bg-neutral-900">
                         {callType === 'video' ? (
-                            <video
-                                ref={remoteVideoRef}
-                                autoPlay
-                                playsInline
-                                className="w-full h-full object-cover"
-                            />
+                            <>
+                                <video
+                                    ref={remoteVideoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    className={`w-full h-full object-cover ${remoteStream ? '' : 'hidden'}`}
+                                />
+                                {!remoteStream && (
+                                    <div className="flex h-full w-full items-center justify-center">
+                                        <div className="text-center">
+                                            <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full bg-primary-600 text-4xl font-semibold text-white">
+                                                {remoteUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                            </div>
+                                            <h2 className="text-xl font-semibold text-white">{remoteUser?.name || 'Unknown'}</h2>
+                                            <p className="mt-2 text-neutral-400">{connectionStatus}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
                                 <div className="text-center">

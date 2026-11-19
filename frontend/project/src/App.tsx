@@ -32,7 +32,7 @@ import NotFound from "./pages/NotFound.tsx";
 import PublicProfile from "./pages/PublicProfile.tsx";
 import AppShell from "./components/layout/AppShell.tsx";
 import AdminShell from "./components/layout/AdminShell.tsx";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { MotionConfig } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "./store/store.ts";
@@ -53,6 +53,7 @@ import {
   acceptMeetingInvite,
   rejectMeetingInvite,
   initiateCall,
+  acceptCall,
 } from "./store/slices/callSlice.ts";
 import { socket } from "./services/socket.ts";
 import axios from "axios";
@@ -72,6 +73,11 @@ const AppContent: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { callState, incomingCallData, remoteUser, callType, meetingInvitation } = useSelector((state: RootState) => state.call);
+  // Read the current call inside socket handlers without re-subscribing.
+  // (Re-running the socket effect on every call change disconnected the socket mid-call.)
+  const callRef = useRef({ remoteUser, callType });
+  const autoAnswerRef = useRef<{ from: number; until: number } | null>(null);
+  callRef.current = { remoteUser, callType };
 
   // Check authentication on mount
   useEffect(() => {
@@ -176,6 +182,11 @@ const AppContent: React.FC = () => {
       offer?: RTCSessionDescriptionInit;
     }) => {
       dispatch(receiveCall(data));
+      const auto = autoAnswerRef.current;
+      if (auto && auto.from === Number(data.callerId) && Date.now() < auto.until) {
+        autoAnswerRef.current = null;
+        dispatch(acceptCall());
+      }
     });
 
     socket.on("call-rejected", ({ reason }: { reason?: string }) => {
@@ -192,6 +203,7 @@ const AppContent: React.FC = () => {
 
     socket.on("call-error", ({ error, code }: { error: string; code: string }) => {
       dispatch(setCallError({ message: error, code }));
+      const { remoteUser, callType } = callRef.current;
       if (code === 'USER_OFFLINE' && user?.id && remoteUser?.id) {
         dispatch(saveCallRecord({
           callerId: Number(user.id),
@@ -250,7 +262,7 @@ const AppContent: React.FC = () => {
       socket.off("meeting-invite-rejected");
       socket.disconnect();
     };
-  }, [dispatch, isAuthenticated, user, remoteUser, callType]);
+  }, [dispatch, isAuthenticated, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const location = useLocation();
   const publicPaths = new Set(['/']);
@@ -277,14 +289,9 @@ const AppContent: React.FC = () => {
 
             dispatch(acceptMeetingInvite());
 
-            dispatch(initiateCall({
-              remoteUser: {
-                id: meetingInvitation.senderId,
-                name: meetingInvitation.senderName,
-                avatarUrl: meetingInvitation.senderAvatar
-              },
-              callType: 'video'
-            }));
+            // Only the inviter places the call. Answer it automatically when it arrives,
+            // instead of both sides calling each other at the same time.
+            autoAnswerRef.current = { from: Number(meetingInvitation.senderId), until: Date.now() + 30000 };
           }
         }}
         onReject={() => {
@@ -303,8 +310,9 @@ const AppContent: React.FC = () => {
       />
       {(callState === 'calling' || callState === 'connecting' || callState === 'connected') && (
         <VideoCall
+          key={`${remoteUser?.id ?? 'x'}-${incomingCallData ? 'in' : 'out'}`}
           offer={incomingCallData?.offer}
-          isIncoming={callState === 'connecting' && !!incomingCallData}
+          isIncoming={!!incomingCallData?.offer}
         />
       )}
       <Routes>

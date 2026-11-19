@@ -178,10 +178,12 @@ export const initSocket = (server) => {
     });
 
     // ICE candidate exchange
-    socket.on("ice-candidate", ({ targetUserId, candidate }) => {
+    socket.on("ice-candidate", ({ targetUserId, candidate, kind }) => {
       try {
+        if (targetUserId === undefined || targetUserId === null) return;
         io.to(targetUserId.toString()).emit("ice-candidate", {
           candidate,
+          kind: kind === "screen" ? "screen" : "call", // keeps screen-share and call connections apart
           fromUserId: userSockets.get(socket.id)
         });
       } catch (error) {
