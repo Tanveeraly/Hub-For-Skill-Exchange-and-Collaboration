@@ -7,10 +7,23 @@ import { PrismaClient } from "../generated/prisma/index.js";
 const prisma = new PrismaClient();
 
 const sentMessage = asynHandler(async (req, res, next) => {
-    const { senderId, receiverId, messageText, attachments } = req.body;
-    if (!senderId || !receiverId ||(!messageText && !attachments)) {
+    const { messageText, attachments } = req.body;
+    // Never trust a sender id from the client: use the signed-in user.
+    const senderId = Number(req.user.id);
+    const receiverId = Number(req.body.receiverId);
+    if (!receiverId || Number.isNaN(receiverId)) {
+        return next(new apiError(400, "A valid receiver is required"));
+    }
+    if (receiverId === senderId) {
+        return next(new apiError(400, "You can't send a message to yourself"));
+    }
+    if (!messageText && !(attachments && attachments.length)) {
         return next(new apiError(400, "Message text or attachment is required"));
-    }   
+    }
+    const receiver = await prisma.user.findUnique({ where: { id: receiverId }, select: { id: true } });
+    if (!receiver) {
+        return next(new apiError(404, "That person no longer exists"));
+    }
     
     const message = await prisma.message.create({
         data: {
@@ -27,8 +40,9 @@ const sentMessage = asynHandler(async (req, res, next) => {
             } : undefined
         },
       include:{
-        sender:true,
-        receiver:true,
+        // Only public fields: this payload is pushed to the other person.
+        sender: { select: { id: true, name: true, profile: { select: { avatarUrl: true } } } },
+        receiver: { select: { id: true, name: true, profile: { select: { avatarUrl: true } } } },
         attachments: true
       }
     })
@@ -48,14 +62,12 @@ const sentMessage = asynHandler(async (req, res, next) => {
         attachments: message.attachments || [], // Include attachments for real-time
         sender: {
             id: message.sender.id,
-            username: message.sender.name || "User", // Fallback if username missing
-            email: message.sender.email,
-            profilePicture: message.sender.profile?.avatarUrl, // Adjust if nested
+            username: message.sender.name || "User",
+            profilePicture: message.sender.profile?.avatarUrl,
         },
         receiver: {
             id: message.receiver.id,
             username: message.receiver.name || "User",
-            email: message.receiver.email,
             profilePicture: message.receiver.profile?.avatarUrl,
         }
     }
@@ -84,6 +96,10 @@ const getMessages = asynHandler(async (req, res, next) => {
     if (isNaN(u1) || isNaN(u2)) {
       console.log(`[getMessages] Invalid IDs: u1=${user1}, u2=${user2}`);
       return next(new apiError(400, "Invalid user IDs provided"));
+    }
+    const me = Number(req.user.id);
+    if (me !== u1 && me !== u2) {
+      return next(new apiError(403, "You can only read your own conversations"));
     }
 
     console.log(`[getMessages] Executing Prisma query for u1: ${u1}, u2: ${u2}`);
@@ -176,6 +192,7 @@ const getConversations = asynHandler(async (req, res, next) => {
 
     messages.forEach(msg => {
         const otherUser = msg.senderId === userId ? msg.receiver : msg.sender;
+        if (!otherUser || otherUser.id === userId) return; // skip messages to yourself
         if (!conversationMap.has(otherUser.id)) {
             conversationMap.set(otherUser.id, {
                 id: otherUser.id.toString(),

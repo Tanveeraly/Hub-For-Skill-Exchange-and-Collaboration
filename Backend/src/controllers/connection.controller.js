@@ -1,3 +1,4 @@
+import { createAndPush } from "../utlis/notify.js";
 import { asynHandler } from "../utlis/asyncHandler.js";
 import { apiError } from "../utlis/apiError.js";
 import { ApiResponse } from "../utlis/apiRespone.js";
@@ -47,7 +48,7 @@ const sendConnectionRequest = asynHandler(async (req, res, next) => {
   });
 
   // Create Notification for Receiver
-  await prisma.notification.create({
+  await createAndPush(prisma, {
     data: {
       userId: parseInt(receiverId),
       senderId: senderId,
@@ -87,7 +88,7 @@ const acceptConnectionRequest = asynHandler(async (req, res, next) => {
   });
 
   // Create Notification for Sender (now connected)
-  await prisma.notification.create({
+  await createAndPush(prisma, {
     data: {
       userId: connection.senderId,
       senderId: userId,

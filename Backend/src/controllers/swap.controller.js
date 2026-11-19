@@ -1,3 +1,4 @@
+import { createAndPush } from "../utlis/notify.js";
 import { PrismaClient, Prisma } from "../generated/prisma/index.js";
 import { apiError } from "../utlis/apiError.js";
 import { asynHandler } from "../utlis/asyncHandler.js";
@@ -467,7 +468,7 @@ const attachFileToSwap = asynHandler(async (req, res, next) => {
         const partnerId = swapRequest.senderId === req.user.id ? swapRequest.receiverId : swapRequest.senderId;
         
         // Notify partner
-        await prisma.notification.create({
+        await createAndPush(prisma, {
             data: {
                 userId: partnerId,
                 senderId: req.user.id,

@@ -10,6 +10,7 @@ export interface Message {
     timestamp: string;
     isRead: boolean;
     isSent: boolean;
+    createdAt?: string;
     attachments?: Attachment[];
 }
 
@@ -38,6 +39,8 @@ interface ChatState {
     selectedConversationId: string | null;
     loading: boolean;
     error: string | null;
+    /** New messages that arrived while the user was elsewhere in the app. */
+    unreadMessages: number;
 }
 
 const initialState: ChatState = {
@@ -47,6 +50,7 @@ const initialState: ChatState = {
     selectedConversationId: null,
     loading: false,
     error: null,
+    unreadMessages: 0,
 };
 
 // Async Thunks
@@ -123,7 +127,10 @@ const chatSlice = createSlice({
             state.messages = action.payload;
         },
         addMessage: (state, action: PayloadAction<Message>) => {
-            state.messages.push(action.payload);
+            // The socket and the HTTP response can both deliver the same message.
+            if (!state.messages.some((m) => m.id === action.payload.id)) {
+                state.messages.push(action.payload);
+            }
         },
         setConversations: (state, action: PayloadAction<Conversation[]>) => {
             state.conversations = action.payload;
@@ -143,6 +150,12 @@ const chatSlice = createSlice({
         },
         setError: (state, action: PayloadAction<string | null>) => {
             state.error = action.payload;
+        },
+        incrementUnreadMessages: (state) => {
+            state.unreadMessages += 1;
+        },
+        clearUnreadMessages: (state) => {
+            state.unreadMessages = 0;
         },
     },
     extraReducers: (builder) => {
@@ -187,6 +200,8 @@ const chatSlice = createSlice({
                     const newMessage = {
                         ...rawMsg,
                         id: rawMsg.id.toString(),
+                        senderId: Number(rawMsg.senderId),
+                        receiverId: Number(rawMsg.receiverId),
                         content: rawMsg.content || rawMsg.messageText || '',
                         timestamp: rawMsg.timestamp || (rawMsg.createdAt ? new Date(rawMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'),
                         isSent: true
@@ -223,7 +238,9 @@ export const {
     updateConversation,
     setSelectedConversationId,
     setLoading,
-    setError
+    setError,
+    incrementUnreadMessages,
+    clearUnreadMessages
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

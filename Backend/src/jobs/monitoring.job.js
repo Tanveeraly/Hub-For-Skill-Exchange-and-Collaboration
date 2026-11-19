@@ -1,3 +1,4 @@
+import { createAndPush } from "../utlis/notify.js";
 import cron from "node-cron";
 import os from "os";
 import { PrismaClient } from "../generated/prisma/index.js";
@@ -29,7 +30,7 @@ const setupMonitoringJob = () => {
                 });
 
                 for (const admin of admins) {
-                    await prisma.notification.create({
+                    await createAndPush(prisma, {
                         data: {
                             userId: admin.id,
                             type: "SYSTEM",
@@ -52,7 +53,7 @@ const setupMonitoringJob = () => {
                 });
 
                 for (const admin of admins) {
-                    await prisma.notification.create({
+                    await createAndPush(prisma, {
                         data: {
                             userId: admin.id,
                             type: "SYSTEM",

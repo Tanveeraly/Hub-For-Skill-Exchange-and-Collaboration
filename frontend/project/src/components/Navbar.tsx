@@ -49,6 +49,7 @@ export default function Navbar() {
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const unread = useSelector((state: RootState) => state.notifications.items.filter((n) => !n.isRead).length);
+  const unreadMessages = useSelector((state: RootState) => state.chat.unreadMessages);
   const isAdmin = currentUser?.role === 'ADMIN';
 
   useEffect(() => {
@@ -117,6 +118,11 @@ export default function Navbar() {
                   }
                 >
                   {label}
+                  {to === '/messages' && unreadMessages > 0 && (
+                    <span className="ml-1.5 min-w-[18px] rounded-full bg-error-600 px-1.5 text-center text-[11px] font-semibold leading-[18px] text-white" aria-label={`${unreadMessages} unread`}>
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </nav>
@@ -200,10 +206,25 @@ export default function Navbar() {
           </div>
         )}
 
+        {isAuthenticated && (
+          <Link
+            to="/notifications"
+            className="relative ml-auto inline-flex h-10 w-10 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100 md:hidden"
+            aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+          >
+            <Bell className="h-5 w-5" />
+            {unread > 0 && (
+              <span className="absolute right-1 top-1 min-w-[16px] rounded-full bg-error-600 px-1 text-center text-[10px] font-semibold leading-4 text-white">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </Link>
+        )}
+
         <button
           type="button"
           onClick={() => setMobileOpen((value) => !value)}
-          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100 md:hidden"
+          className={`${isAuthenticated ? '' : 'ml-auto '}inline-flex h-10 w-10 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100 md:hidden`}
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileOpen}
         >
@@ -228,7 +249,7 @@ export default function Navbar() {
                     />
                   </label>
                 </form>
-                {[...primaryNav, { to: '/notifications', label: unread ? `Notifications (${unread})` : 'Notifications' }].map(({ to, label }) => (
+                {[...primaryNav.map((item) => item.to === '/messages' && unreadMessages ? { ...item, label: `Messages (${unreadMessages})` } : item), { to: '/notifications', label: unread ? `Notifications (${unread})` : 'Notifications' }].map(({ to, label }) => (
                   <NavLink
                     key={to}
                     to={to}

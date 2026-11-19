@@ -17,6 +17,7 @@ const swapSteps = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const user = useSelector((state: RootState) => state.auth.user);
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const unreadMessages = useSelector((state: RootState) => state.chat.unreadMessages);
   const { items: posts } = useSelector((state: RootState) => state.posts);
   const { received, sent } = useSelector((state: RootState) => state.swaps);
   const location = useLocation();
@@ -187,7 +188,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               to={to}
               className={({ isActive }) => `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] ${isActive ? 'text-primary-700' : 'text-neutral-500'}`}
             >
-              <Icon className="h-5 w-5" />
+              <span className="relative">
+                <Icon className="h-5 w-5" />
+                {to === '/messages' && unreadMessages > 0 && (
+                  <span className="absolute -right-2 -top-1.5 min-w-[16px] rounded-full bg-error-600 px-1 text-center text-[10px] font-semibold leading-4 text-white">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
+              </span>
               {label}
             </NavLink>
           ))}

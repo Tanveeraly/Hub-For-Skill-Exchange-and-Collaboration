@@ -44,10 +44,17 @@ export const initSocket = (server) => {
     
     socket.on("send_message", async (data) => {
       try {
+        // The sender is whoever joined on this socket, not what the client claims.
+        const senderId = userSockets.get(socket.id) ?? Number(data.senderId);
+        const receiverId = Number(data.receiverId);
+        if (!senderId || !receiverId || senderId === receiverId) {
+          socket.emit("message_error", { error: senderId === receiverId ? "You can't send a message to yourself" : "Invalid receiver" });
+          return;
+        }
         const message = await prisma.message.create({
           data: {
-            senderId: data.senderId,
-            receiverId: data.receiverId,
+            senderId,
+            receiverId,
             messageText: data.messageText,
             attachments: data.attachments?.length > 0 ? {
                 create: data.attachments.map(att => ({
@@ -75,7 +82,8 @@ export const initSocket = (server) => {
           timestamp: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           isRead: false,
           isSent: true,
-          attachments: message.attachments || []
+          attachments: message.attachments || [],
+          sender: { id: message.sender?.id, username: message.sender?.name || "User", profilePicture: message.sender?.profile?.avatarUrl }
         };
 
         io.to(data.receiverId.toString()).emit("receive_message", formattedMessage);

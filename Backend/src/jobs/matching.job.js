@@ -1,3 +1,4 @@
+import { createAndPush } from "../utlis/notify.js";
 import cron from "node-cron";
 import { PrismaClient } from "../generated/prisma/index.js";
 
@@ -71,7 +72,7 @@ const setupMatchingJob = () => {
 
                     if (!existingNotification) {
                         // Create notification
-                        await prisma.notification.create({
+                        await createAndPush(prisma, {
                             data: {
                                 userId: user.id,
                                 type: "SYSTEM",
@@ -81,7 +82,7 @@ const setupMatchingJob = () => {
                         });
 
                         // Also notify the matched user
-                        await prisma.notification.create({
+                        await createAndPush(prisma, {
                             data: {
                                 userId: topMatch.id,
                                 type: "SYSTEM",

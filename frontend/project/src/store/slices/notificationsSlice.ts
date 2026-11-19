@@ -86,7 +86,9 @@ const notificationsSlice = createSlice({
     initialState,
     reducers: {
         addNotification: (state, action) => {
-            state.items.unshift(action.payload);
+            if (!state.items.some((n) => n.id === action.payload?.id)) {
+                state.items.unshift(action.payload);
+            }
         }
     },
     extraReducers: (builder) => {
@@ -96,11 +98,16 @@ const notificationsSlice = createSlice({
             })
             .addCase(fetchNotifications.fulfilled, (state, action) => {
                 state.loading = false;
-                state.items = action.payload;
+                state.items = Array.isArray(action.payload) ? action.payload : [];
             })
             .addCase(fetchNotifications.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
+            })
+            .addCase(markAsRead.pending, (state, action) => {
+                // Optimistic: the badge drops as soon as the user opens a notification.
+                const item = state.items.find((n) => n.id === action.meta.arg);
+                if (item) item.isRead = true;
             })
             .addCase(markAsRead.fulfilled, (state, action) => {
                 const updated = action.payload;
@@ -108,6 +115,9 @@ const notificationsSlice = createSlice({
                 if (index !== -1) {
                     state.items[index] = { ...state.items[index], ...updated };
                 }
+            })
+            .addCase(markAllAsRead.pending, (state) => {
+                state.items.forEach((n) => (n.isRead = true));
             })
             .addCase(markAllAsRead.fulfilled, (state) => {
                 state.items.forEach((n) => (n.isRead = true));

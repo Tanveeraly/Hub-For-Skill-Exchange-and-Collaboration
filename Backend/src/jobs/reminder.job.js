@@ -1,3 +1,4 @@
+import { createAndPush } from "../utlis/notify.js";
 import cron from "node-cron";
 import { PrismaClient } from "../generated/prisma/index.js";
 
@@ -68,7 +69,7 @@ const sendReminder = async (swap, timeFrame) => {
     // Notify both users
     const userIds = [swap.senderId, swap.receiverId];
     for (const userId of userIds) {
-        await prisma.notification.create({
+        await createAndPush(prisma, {
             data: {
                 userId,
                 type: "SYSTEM",

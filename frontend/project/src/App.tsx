@@ -37,7 +37,8 @@ import { MotionConfig } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "./store/store.ts";
 import { setUser, logout as logoutAction } from "./store/slices/authSlice.ts";
-import { addMessage } from "./store/slices/chatSlice.ts";
+import { addMessage, incrementUnreadMessages } from "./store/slices/chatSlice.ts";
+import { addNotification, fetchNotifications } from "./store/slices/notificationsSlice.ts";
 import {
   receiveCall,
   callRejected,
@@ -92,6 +93,11 @@ const AppContent: React.FC = () => {
     checkAuth();
   }, [dispatch]);
 
+  // Load real notifications once signed in, so the bell is right on every page.
+  useEffect(() => {
+    if (isAuthenticated && user?.id) dispatch(fetchNotifications());
+  }, [dispatch, isAuthenticated, user?.id]);
+
   // Socket connection and event handling
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
@@ -108,33 +114,44 @@ const AppContent: React.FC = () => {
     socket.on("receive_message", (msg: any) => {
       const formattedMessage = {
         id: msg.id?.toString() || Date.now().toString(),
-        senderId: msg.senderId,
-        receiverId: msg.receiverId,
+        senderId: Number(msg.senderId),
+        receiverId: Number(msg.receiverId),
         content: msg.content || msg.messageText || '',
         timestamp: msg.timestamp || new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isRead: msg.isRead || false,
         isSent: true,
+        createdAt: msg.createdAt,
         attachments: msg.attachments || []
       };
       dispatch(addMessage(formattedMessage));
+      // Outside the Messages page, count it and tell the user who wrote.
+      if (window.location.pathname !== '/messages') {
+        dispatch(incrementUnreadMessages());
+        const from = msg.sender?.username || msg.sender?.name || 'someone';
+        const preview = formattedMessage.content
+          ? `: ${formattedMessage.content.length > 60 ? formattedMessage.content.slice(0, 60) + '…' : formattedMessage.content}`
+          : ' (file)';
+        toast.info(`New message from ${from}${preview}`);
+      }
     });
 
     socket.on("message_sent", (msg: any) => {
       const formattedMessage = {
         id: msg.id?.toString() || Date.now().toString(),
-        senderId: msg.senderId,
-        receiverId: msg.receiverId,
+        senderId: Number(msg.senderId),
+        receiverId: Number(msg.receiverId),
         content: msg.content || msg.messageText || '',
         timestamp: msg.timestamp || new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isRead: false,
         isSent: true,
+        createdAt: msg.createdAt,
         attachments: msg.attachments || []
       };
       dispatch(addMessage(formattedMessage));
     });
 
     socket.on("message_error", ({ error }: { error: string }) => {
-      console.error("Message error:", error);
+      toast.error(error || 'Your message was not sent.');
     });
 
     // Presence Events
@@ -186,9 +203,8 @@ const AppContent: React.FC = () => {
     });
 
     socket.on("notification", (notification: any) => {
-      import("./store/slices/notificationsSlice").then(({ addNotification }) => {
-        dispatch(addNotification(notification));
-      });
+      dispatch(addNotification(notification));
+      toast.info(notification?.title ? `${notification.title}: ${notification.message}` : notification?.message || 'You have a new notification.');
     });
 
     // Meeting Invitation Events

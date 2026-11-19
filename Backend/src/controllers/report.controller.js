@@ -1,3 +1,4 @@
+import { createAndPush } from "../utlis/notify.js";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { apiError } from "../utlis/apiError.js";
 import { asynHandler } from "../utlis/asyncHandler.js";
@@ -31,7 +32,7 @@ const createReport = asynHandler(async (req, res, next) => {
     });
 
     // Notify partner
-    await prisma.notification.create({
+    await createAndPush(prisma, {
         data: {
             userId: partnerId,
             senderId: userId,
