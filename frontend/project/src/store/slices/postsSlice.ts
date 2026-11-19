@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_BASE } from '../../config';
 
-const BASE_URL = 'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/posts';
+const BASE_URL = `${API_BASE}/posts`;
 
 export const fetchPosts = createAsyncThunk('posts/fetchPosts', async (_, { rejectWithValue }) => {
     try {

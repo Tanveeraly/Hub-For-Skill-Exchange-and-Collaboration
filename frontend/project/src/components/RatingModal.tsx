@@ -30,7 +30,7 @@ export default function RatingModal({ isOpen, onClose, recipientName, onSubmit }
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                        className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden"
                     >
                         <div className="p-6 border-b flex justify-between items-center">
                             <h2 className="text-xl font-bold text-neutral-900">Rate your Session</h2>
@@ -83,7 +83,7 @@ export default function RatingModal({ isOpen, onClose, recipientName, onSubmit }
                                 type="submit"
                                 disabled={rating === 0}
                                 className={`w-full py-3 rounded-xl font-bold text-white transition-all ${rating > 0
-                                        ? 'bg-gradient-to-r from-primary-600 to-primary-600 hover:shadow-lg'
+                                        ? 'bg-primary-600 hover:shadow-lg'
                                         : 'bg-neutral-300 cursor-not-allowed'
                                     }`}
                             >

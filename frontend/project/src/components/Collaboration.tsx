@@ -6,6 +6,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store/store';
 import { fetchMessages } from '../store/slices/chatSlice';
 import axios from 'axios';
+import { API_BASE } from '../config';
+import { toast } from '../lib/toast';
 
 interface CollaborationProps {
     partnerId: number;
@@ -64,7 +66,7 @@ export default function Collaboration({ partnerId, partnerName }: CollaborationP
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, {
+            const response = await axios.post(`${API_BASE}/files/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true
             });
@@ -77,18 +79,18 @@ export default function Collaboration({ partnerId, partnerName }: CollaborationP
             }]);
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Upload failed");
+            toast.error('The file could not be uploaded. Please try again.');
         } finally {
             setIsUploading(false);
         }
     };
 
     return (
-        <div className="flex flex-col h-[600px] bg-white rounded-3xl shadow-xl border border-neutral-100 overflow-hidden">
+        <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-xl border border-neutral-100 overflow-hidden">
             {/* Header */}
             <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                 <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center text-white font-bold mr-3 shadow-lg shadow-primary-100">
+                    <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center text-white font-bold mr-3 shadow-lg">
                         {partnerName?.charAt(0) || <User className="w-5 h-5" />}
                     </div>
                     <div>
@@ -110,7 +112,7 @@ export default function Collaboration({ partnerId, partnerName }: CollaborationP
                         key={msg.id}
                         className={`flex ${Number(msg.senderId) === Number(currentUser?.id) ? 'justify-end' : 'justify-start'}`}
                     >
-                        <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${Number(msg.senderId) === Number(currentUser?.id) ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-900'
+                        <div className={`max-w-[80%] rounded-xl p-4 shadow-sm ${Number(msg.senderId) === Number(currentUser?.id) ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-900'
                             }`}>
                             <p className="text-sm font-medium">{msg.content}</p>
 
@@ -180,13 +182,13 @@ export default function Collaboration({ partnerId, partnerName }: CollaborationP
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Say something collaborative..."
-                        className="flex-grow p-4 bg-white border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none shadow-sm transition-all"
+                        className="flex-grow p-4 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none shadow-sm transition-all"
                     />
 
                     <button
                         type="submit"
                         disabled={!newMessage.trim() && activeAttachments.length === 0}
-                        className="p-4 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 shadow-lg shadow-primary-100 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                        className="p-4 bg-primary-600 text-white rounded-xl hover:bg-primary-700 shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50"
                     >
                         <Send className="w-5 h-5" />
                     </button>

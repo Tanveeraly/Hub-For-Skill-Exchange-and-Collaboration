@@ -51,7 +51,7 @@ export default function NotificationDropdown({
             case 'SWAP_REJECTED':
                 return <RefreshCw className="w-4 h-4 text-accent-500" />;
             case 'message': return <MessageSquare className="w-4 h-4 text-success-500" />;
-            case 'connection': return <UserPlus className="w-4 h-4 text-orange-500" />;
+            case 'connection': return <UserPlus className="w-4 h-4 text-warning-500" />;
             default: return <Bell className="w-4 h-4 text-neutral-500" />;
         }
     };
@@ -92,7 +92,7 @@ export default function NotificationDropdown({
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-neutral-100 z-50 max-h-[600px] flex flex-col"
+                            className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-neutral-100 z-50 max-h-[600px] flex flex-col"
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-neutral-100">

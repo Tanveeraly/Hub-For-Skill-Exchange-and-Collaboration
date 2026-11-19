@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_BASE } from '../../config';
 
-const BASE_URL = 'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/swaps';
+const BASE_URL = `${API_BASE}/swaps`;
 
 export const fetchReceivedSwaps = createAsyncThunk('swaps/fetchReceived', async (_, { rejectWithValue }) => {
     try {
@@ -80,7 +81,7 @@ export const submitRating = createAsyncThunk('swaps/submitRating', async (data: 
     feedback?: string;
 }, { rejectWithValue }) => {
     try {
-        const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/ratings', data, { withCredentials: true });
+        const response = await axios.post(`${API_BASE}/ratings`, data, { withCredentials: true });
         return response.data.data;
     } catch (error: any) {
         return rejectWithValue(error.response?.data?.message || 'Failed to submit rating');

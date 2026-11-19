@@ -35,10 +35,10 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }: T
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+                        className="bg-white rounded-xl shadow-lg w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
                     >
                         {/* Header */}
-                        <div className="relative bg-gradient-to-r from-primary-600 via-accent-600 to-error-500 p-6">
+                        <div className="relative bg-primary-600 p-6">
                             <div className="flex items-start justify-between text-white">
                                 <div>
                                     <h2 className="text-2xl font-bold mb-2">Terms & Conditions</h2>
@@ -53,8 +53,6 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }: T
                             </div>
 
                             {/* Decorative elements */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
                         </div>
 
                         {/* Scrollable Content */}
@@ -128,8 +126,8 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }: T
                             </section>
 
                             {/* Important Notice */}
-                            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
-                                <p className="text-sm text-amber-800">
+                            <div className="bg-warning-50 border-l-4 border-warning-400 p-4 rounded">
+                                <p className="text-sm text-warning-800">
                                     <strong>Important:</strong> These terms may be updated periodically. Continued use
                                     of the platform constitutes acceptance of any changes. Last updated: November 2025.
                                 </p>
@@ -217,7 +215,7 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }: T
                                 onClick={handleAccept}
                                 disabled={!allAgreed}
                                 className={`flex-1 px-6 py-3 rounded-lg font-semibold transition ${allAgreed
-                                    ? 'bg-gradient-to-r from-primary-600 to-accent-600 text-white hover:shadow-lg hover:scale-[1.02]'
+                                    ? 'bg-primary-600 text-white hover:shadow-lg'
                                     : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                                     }`}
                             >

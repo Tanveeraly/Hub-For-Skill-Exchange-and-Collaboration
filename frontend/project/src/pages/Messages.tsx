@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store/store';
 import { updateConversation, setSelectedConversationId, fetchMessages, sendMessage, fetchConversations, uploadFile, setConversations } from '../store/slices/chatSlice';
 import { initiateCall } from '../store/slices/callSlice';
 import { socket } from '../services/socket';
-import { Search, Send, MoreVertical, Phone, Video, Paperclip, Smile, Check, CheckCheck, PhoneOff, ArrowLeft, X } from 'lucide-react';
+import { Search, Send, Phone, Video, Paperclip, Check, CheckCheck, PhoneOff, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from '../lib/toast';
 
 export default function Messages() {
     const dispatch = useDispatch<AppDispatch>();
@@ -142,7 +143,7 @@ export default function Messages() {
             setIsUploading(false);
         } catch (error) {
             console.error("Upload failed:", error);
-            alert("Failed to upload file. Please try again.");
+            toast.error('The file could not be uploaded. Please try again.');
             setIsUploading(false);
         }
 
@@ -240,7 +241,8 @@ export default function Messages() {
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
                                     <input
                                         type="text"
-                                        placeholder="Search messages..."
+                                        placeholder="Search by name"
+                                        aria-label="Search conversations"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -260,9 +262,11 @@ export default function Messages() {
                                 {filteredConversations.map((conv) => {
                                     const convWithStatus = getConversationWithOnlineStatus(conv);
                                     return (
-                                        <motion.div
+                                        <div
                                             key={conv.id}
-                                            whileHover={{ backgroundColor: '#f9fafb' }}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') dispatch(setSelectedConversationId(conv.id)); }}
                                             onClick={() => dispatch(setSelectedConversationId(conv.id))}
                                             className={`cursor-pointer border-b border-neutral-100 p-4 transition ${selectedConversation?.id === conv.id ? 'border-l-4 border-l-primary-600 bg-primary-50' : 'hover:bg-neutral-50'
                                                 }`}
@@ -276,7 +280,7 @@ export default function Messages() {
                                                             className="w-12 h-12 rounded-full object-cover"
                                                         />
                                                     ) : (
-                                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-bold">
+                                                        <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
                                                             {conv.userName?.charAt(0)?.toUpperCase() || 'U'}
                                                         </div>
                                                     )}
@@ -300,15 +304,22 @@ export default function Messages() {
                                                     </div>
                                                 </div>
                                             </div>
-                                        </motion.div>
+                                        </div>
                                     );
                                 })}
 
                                 {/* Empty State */}
                                 {!loading && filteredConversations.length === 0 && (
-                                    <div className="flex flex-col items-center justify-center py-12 text-neutral-400">
-                                        <Search className="w-12 h-12 mb-4" />
-                                        <p>No conversations found</p>
+                                    <div className="px-6 py-12 text-center">
+                                        {searchQuery ? (
+                                            <p className="text-sm text-neutral-600">No conversations with “{searchQuery}”.</p>
+                                        ) : (
+                                            <>
+                                                <p className="font-medium text-neutral-900">No conversations yet</p>
+                                                <p className="mt-1 text-sm text-neutral-600">Open someone's listing or profile and press Message to start one.</p>
+                                                <Link to="/marketplace" className="mt-4 inline-block rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50">Find skills</Link>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -323,6 +334,7 @@ export default function Messages() {
                                         <button
                                             onClick={() => dispatch(setSelectedConversationId(null))}
                                             className="md:hidden p-2 -ml-2 hover:bg-neutral-100 rounded-full transition flex-shrink-0"
+                                            aria-label="Back to conversations"
                                         >
                                             <ArrowLeft className="w-5 h-5 text-neutral-600" />
                                         </button>
@@ -334,7 +346,7 @@ export default function Messages() {
                                                     className="w-10 h-10 rounded-full object-cover"
                                                 />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-bold">
+                                                <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
                                                     {selectedConversation.userName?.charAt(0)?.toUpperCase() || 'U'}
                                                 </div>
                                             )}
@@ -343,7 +355,7 @@ export default function Messages() {
                                             )}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="font-semibold text-neutral-900 truncate">{selectedConversation.userName}</h3>
+                                            <Link to={`/profile/${selectedConversation.userId}`} className="block truncate font-semibold text-neutral-900 hover:underline">{selectedConversation.userName}</Link>
                                             <p className="text-xs text-neutral-500">
                                                 {remoteIsTyping ? (
                                                     <span className="text-primary-600">typing...</span>
@@ -366,7 +378,8 @@ export default function Messages() {
                                                     ? 'hover:bg-success-100 text-success-600'
                                                     : 'hover:bg-neutral-100 text-neutral-400'
                                                 } ${callState !== 'idle' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            title={isSelectedUserOnline ? 'Start audio call' : 'User is offline'}
+                                            title={isSelectedUserOnline ? 'Start audio call' : `${selectedConversation.userName} is offline`}
+                                            aria-label="Start audio call"
                                         >
                                             <Phone className="w-5 h-5" />
                                         </motion.button>
@@ -379,13 +392,11 @@ export default function Messages() {
                                                     ? 'hover:bg-primary-100 text-primary-600'
                                                     : 'hover:bg-neutral-100 text-neutral-400'
                                                 } ${callState !== 'idle' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            title={isSelectedUserOnline ? 'Start video call' : 'User is offline'}
+                                            title={isSelectedUserOnline ? 'Start video call' : `${selectedConversation.userName} is offline`}
+                                            aria-label="Start video call"
                                         >
                                             <Video className="w-5 h-5" />
                                         </motion.button>
-                                        <button className="p-2 hover:bg-neutral-100 rounded-full transition">
-                                            <MoreVertical className="w-5 h-5 text-neutral-600" />
-                                        </button>
                                     </div>
                                 </div>
 
@@ -408,6 +419,12 @@ export default function Messages() {
 
                                 {/* Messages */}
                                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
+                                    {messages.length === 0 && !remoteIsTyping && (
+                                        <div className="mx-auto mt-8 max-w-sm text-center text-sm text-neutral-500">
+                                            <p className="font-medium text-neutral-800">Start the conversation</p>
+                                            <p className="mt-1">Say hello, mention the skill you're interested in, and suggest when you could meet.</p>
+                                        </div>
+                                    )}
                                     {messages.map((message) => (
                                         <div
                                             key={message.id}
@@ -415,7 +432,7 @@ export default function Messages() {
                                         >
                                             <div className={`max-w-xs lg:max-w-md`}>
                                                 <div
-                                                    className={`px-4 py-2 rounded-2xl ${Number(message.senderId) === Number(currentUserId)
+                                                    className={`px-4 py-2 rounded-xl ${Number(message.senderId) === Number(currentUserId)
                                                             ? 'bg-primary-600 text-white rounded-br-none'
                                                             : 'bg-neutral-100 text-neutral-900 rounded-bl-none'
                                                         }`}
@@ -428,11 +445,11 @@ export default function Messages() {
                                                             </a>
                                                         </div>
                                                     ))}
-                                                    <p className="text-sm">{message.content}</p>
+                                                    <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
                                                 </div>
                                                 <div className={`flex items-center space-x-1 mt-1 ${Number(message.senderId) === Number(currentUserId) ? 'justify-end' : 'justify-start'}`}>
                                                     <span className="text-xs text-neutral-400">{message.timestamp}</span>
-                                                    {message.senderId === currentUserId && (
+                                                    {Number(message.senderId) === Number(currentUserId) && (
                                                         message.isRead ? (
                                                             <CheckCheck className="w-3 h-3 text-primary-600" />
                                                         ) : (
@@ -453,7 +470,7 @@ export default function Messages() {
                                                 exit={{ opacity: 0, y: 10 }}
                                                 className="flex justify-start"
                                             >
-                                                <div className="bg-neutral-100 rounded-2xl rounded-bl-none px-4 py-3">
+                                                <div className="bg-neutral-100 rounded-xl rounded-bl-none px-4 py-3">
                                                     <div className="flex space-x-1">
                                                         {[0, 1, 2].map((i) => (
                                                             <motion.div
@@ -502,22 +519,22 @@ export default function Messages() {
                                         <button
                                             onClick={() => fileInputRef.current?.click()}
                                             disabled={isUploading}
+                                            aria-label="Attach a file"
+                                            title="Attach a file"
                                             className={`p-2 rounded-full transition ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-100'}`}
                                         >
                                             <Paperclip className="w-5 h-5 text-neutral-600" />
                                         </button>
-                                        <button className="p-2 hover:bg-neutral-100 rounded-full transition">
-                                            <Smile className="w-5 h-5 text-neutral-600" />
-                                        </button>
                                         <input
                                             type="text"
-                                            placeholder="Type a message..."
+                                            placeholder={`Message ${selectedConversation.userName.split(' ')[0]}…`}
+                                            aria-label="Message"
                                             value={newMessage}
                                             onChange={(e) => {
                                                 setNewMessage(e.target.value);
                                                 handleTyping();
                                             }}
-                                            onKeyPress={(e) => e.key === 'Enter' && !isUploading && handleSendMessage()}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isUploading) { e.preventDefault(); handleSendMessage(); } }}
                                             className="flex-1 px-4 py-2 border border-neutral-300 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                         />
                                         <motion.button
@@ -525,6 +542,7 @@ export default function Messages() {
                                             whileTap={{ scale: 0.95 }}
                                             onClick={handleSendMessage}
                                             disabled={(!newMessage.trim() && pendingAttachments.length === 0) || isUploading}
+                                            aria-label="Send message"
                                             className="p-3 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <Send className="w-5 h-5" />
@@ -538,8 +556,8 @@ export default function Messages() {
                                     <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-neutral-100 flex items-center justify-center">
                                         <Send className="w-10 h-10 text-neutral-300" />
                                     </div>
-                                    <h3 className="text-lg font-medium text-neutral-600 mb-2">Your Messages</h3>
-                                    <p className="text-sm">Select a conversation to start messaging</p>
+                                    <h3 className="text-lg font-medium text-neutral-700 mb-1">Your messages</h3>
+                                    <p className="text-sm">Pick a conversation on the left. You can also call someone from here when they're online.</p>
                                 </div>
                             </div>
                         )}

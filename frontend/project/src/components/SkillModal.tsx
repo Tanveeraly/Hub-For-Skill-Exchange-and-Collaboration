@@ -74,10 +74,10 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="bg-white rounded-xl shadow-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
                     >
                         {/* Header */}
-                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-gradient-to-r from-primary-50/50 to-primary-50/50">
+                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-primary-50/50">
                             <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center text-white shadow-lg">
                                     <Award className="w-6 h-6" />
@@ -95,13 +95,13 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
                         <div className="p-6 flex-1 overflow-y-auto space-y-6">
                             {/* Selected Skills Basket */}
                             {selectedSkills.length > 0 && (
-                                <div className="p-4 bg-primary-50/50 rounded-2xl border border-primary-100">
-                                    <h4 className="text-xs font-black text-primary-600 uppercase tracking-widest mb-3 pl-1">Selection ({selectedSkills.length})</h4>
+                                <div className="p-4 bg-primary-50/50 rounded-xl border border-primary-100">
+                                    <h4 className="text-xs font-bold text-primary-600 uppercase tracking-widest mb-3 pl-1">Selection ({selectedSkills.length})</h4>
                                     <div className="flex flex-wrap gap-2">
                                         {selectedSkills.map(skill => (
                                             <div key={skill.name} className="flex items-center space-x-1 bg-white border border-primary-200 px-3 py-1.5 rounded-xl shadow-sm animate-in fade-in zoom-in duration-200">
                                                 <span className="text-sm font-bold text-neutral-700">{skill.name}</span>
-                                                <span className="text-[10px] font-black text-primary-500 uppercase px-1.5 py-0.5 bg-primary-50 rounded-md">{skill.level}</span>
+                                                <span className="text-[10px] font-bold text-primary-500 uppercase px-1.5 py-0.5 bg-primary-50 rounded-md">{skill.level}</span>
                                                 <button
                                                     onClick={() => handleToggleSkill(skill.name)}
                                                     className="p-0.5 hover:bg-neutral-100 rounded-lg text-neutral-400 hover:text-error-500 transition-colors"
@@ -127,14 +127,14 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
                                         setManualSkill(val);
                                         if (val === "") setSelectedCategory(null);
                                     }}
-                                    className="w-full pl-12 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all outline-none font-medium"
+                                    className="w-full pl-12 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all outline-none font-medium"
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {/* Categories */}
                                 <div className="space-y-2">
-                                    <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest pl-2">Categories</h4>
+                                    <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-widest pl-2">Categories</h4>
                                     <div className="space-y-1">
                                         {SKILL_CATEGORIES.map(cat => (
                                             <button
@@ -158,7 +158,7 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
 
                                 {/* Skill Selection */}
                                 <div className="md:col-span-2 space-y-2">
-                                    <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest pl-2">
+                                    <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-widest pl-2">
                                         {searchTerm ? `Results for "${searchTerm}"` : selectedCategory || "Popular Skills"}
                                     </h4>
                                     <div className="grid grid-cols-2 gap-2 h-fit max-h-[300px] overflow-y-auto pr-2">
@@ -180,7 +180,7 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
                                                     >
                                                         <span className="truncate">{skill}</span>
                                                         {isSelected && <Check className="w-4 h-4" />}
-                                                        {isExisting && <span className="text-[10px] font-black uppercase">Added</span>}
+                                                        {isExisting && <span className="text-[10px] font-bold uppercase">Added</span>}
                                                     </button>
                                                 );
                                             })
@@ -200,7 +200,7 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
 
                             {/* Level Selection */}
                             <div className="pt-6 border-t border-neutral-100">
-                                <label className="block text-xs font-black text-neutral-400 uppercase tracking-widest mb-4 pl-2">Default Expertise Level</label>
+                                <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4 pl-2">Default Expertise Level</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                     {expertiseLevels.map(level => {
                                         const isSelected = expertiseLevel === level;
@@ -210,8 +210,8 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
                                                 onClick={() => {
                                                     setExpertiseLevel(level);
                                                 }}
-                                                className={`py-3 rounded-2xl text-sm font-black transition-all border-2 ${isSelected
-                                                    ? 'bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-100'
+                                                className={`py-3 rounded-xl text-sm font-bold transition-all border-2 ${isSelected
+                                                    ? 'bg-primary-600 text-white border-primary-600 shadow-lg'
                                                     : 'bg-white text-neutral-500 border-neutral-100 hover:border-neutral-200'
                                                     }`}
                                             >
@@ -235,7 +235,7 @@ export default function SkillModal({ isOpen, onClose, onAdd, existingSkills }: S
                             <button
                                 onClick={handleAdd}
                                 disabled={selectedSkills.length === 0 && !manualSkill.trim()}
-                                className="px-8 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-black shadow-lg shadow-primary-200 hover:bg-primary-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center space-x-2"
+                                className="px-8 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-primary-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center space-x-2"
                             >
                                 <Plus className="w-5 h-5" />
                                 <span>{selectedSkills.length > 1 ? `Add ${selectedSkills.length} Skills` : 'Add Specialty'}</span>

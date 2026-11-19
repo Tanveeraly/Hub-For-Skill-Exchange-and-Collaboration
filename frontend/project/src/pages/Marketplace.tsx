@@ -1,51 +1,17 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Star, MapPin, Bookmark, MessageSquare, TrendingUp, Plus, X, Globe, Link, Mail, Send, RefreshCw, CheckCircle, AlertOctagon } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, MapPin, Bookmark, MessageSquare, Plus, X, AlertOctagon, ArrowLeftRight } from 'lucide-react';
+import { fetchBookmarks, toggleBookmark } from '../store/slices/bookmarksSlice';
 import axios from 'axios';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store/store';
 import { fetchPosts, createPost } from '../store/slices/postsSlice';
-import { sendMessage } from '../store/slices/chatSlice';
 import { submitComplaint } from '../store/slices/adminSlice';
 import NotificationToast, { Toast } from '../components/NotificationToast';
 import SwapRequestModal from '../components/SwapRequestModal';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  isVerified: boolean;
-  role: string;
-  profile: {
-    bio: string;
-    avatarUrl: string;
-    coverimageUrl: string;
-    socialLinks: string;
-    website: string;
-    location: string;
-  } | null;
-  skills: Array<{
-    id: number;
-    skillName: string;
-    expertiseLevel: 'BEGINNER' | 'INTERMEDIATE' | 'EXPERT';
-  }>;
-  portfolios: Array<{
-    id: number;
-    title: string;
-    description: string;
-    mediaUrl: string;
-    mediaType: string | null;
-    createdAt: string;
-  }>;
-  listings: Array<{
-    id: number;
-    title: string;
-    description: string;
-    location: string;
-    isFeatured: boolean;
-  }>;
-}
+import { API_BASE } from '../config';
+import { toast } from '../lib/toast';
 
 interface CreateListingForm {
   title: string;
@@ -55,48 +21,29 @@ interface CreateListingForm {
   categoryId: string;
 }
 
-// Random categories for filtering
-const randomCategories = [
-  'Web Development',
-  'Mobile Development',
-  'Design',
-  'Marketing',
-  'Writing',
-  'Data Science',
-  'Consulting',
-  'Photography',
-  'Video Editing',
-  'Business'
-];
-
 export default function Marketplace() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  useEffect(() => {
+    setSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<User | null>(null);
-  const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
   const [selectedSwapUser, setSelectedSwapUser] = useState<any>(null);
-  const [chatMessage, setChatMessage] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportData, setReportData] = useState({ subject: '', description: '' });
   const [selectedReportPost, setSelectedReportPost] = useState<any>(null);
-  const [chatMessages, setChatMessages] = useState<Array<{ text: string, sender: string, time: string, isSending?: boolean }>>([]);
   const { user } = useSelector((state: RootState) => state.auth);
   const [userEmail, setUserEmail] = useState<string | null>(user?.email || null);
-  const [userName, setUserName] = useState<string>(user?.name || '');
+  const [, setUserName] = useState<string>(user?.name || '');
   const [authLoading, setAuthLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { items: reduxPosts, loading } = useSelector((state: RootState) => state.posts);
   const currentUserId = Number(user?.id ?? 0);
-  const [users] = useState<User[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentUserSkills, setCurrentUserSkillsState] = useState<string[]>([]);
 
   useEffect(() => {
@@ -123,8 +70,8 @@ export default function Marketplace() {
       try {
         setAuthLoading(true);
         const [meRes, catRes] = await Promise.all([
-          axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", { withCredentials: true }),
-          axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/posts/categories", { withCredentials: true })
+          axios.get(`${API_BASE}/auth/getme`, { withCredentials: true }),
+          axios.get(`${API_BASE}/posts/categories`, { withCredentials: true })
         ]);
 
         if (meRes.data?.success || meRes.data?.statusCode === 200 || meRes.data?.message === 'Success' || meRes.data?.data) {
@@ -165,12 +112,6 @@ export default function Marketplace() {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await dispatch(fetchPosts());
-    setIsRefreshing(false);
-    addToast('info', 'Marketplace updated');
-  };
 
   // Poll for updates every 30 seconds - REMOVED to prevent errors
   /*
@@ -186,7 +127,7 @@ export default function Marketplace() {
   const getCurrentUser = async () => {
     try {
       setAuthLoading(true);
-      const res = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", {
+      const res = await axios.get(`${API_BASE}/auth/getme`, {
         withCredentials: true,
       });
 
@@ -205,26 +146,7 @@ export default function Marketplace() {
     }
   };
 
-  // Handle view profile click
-  const handleViewProfile = (skill: any) => {
-    const user = users.find(u => u.id === skill.userId);
-    if (user) {
-      setSelectedProfile(user);
-      setShowProfileModal(true);
-    }
-  };
 
-  // Handle chat click
-  const handleChatClick = (skill: any) => {
-    setSelectedChatUser({
-      id: skill.userId,
-      name: skill.userName,
-      avatar: skill.userAvatar,
-      skill: skill.skillTitle
-    });
-    setShowChatModal(true);
-    setChatMessages([]);
-  };
 
   const handleSwapClick = (skill: any) => {
     setSelectedSwapUser({
@@ -236,12 +158,8 @@ export default function Marketplace() {
     setShowSwapModal(true);
   };
 
-  const handleSwapSubmit = (data: any) => {
-    console.log('Swap requested:', data);
-    // Simulate API call
-    setTimeout(() => {
-      addToast('success', `Swap request sent to ${selectedSwapUser?.name}!`);
-    }, 500);
+  const handleSwapSubmit = () => {
+    toast.success(`Swap request sent to ${selectedSwapUser?.name}. Follow its progress in My swaps.`);
   };
 
   const handleReportClick = (skill: any) => {
@@ -273,85 +191,31 @@ export default function Marketplace() {
     }
   };
 
-  // Send chat message
-  const handleSendMessage = async () => {
-    if (!chatMessage.trim() || !selectedChatUser?.id || !currentUserId) return;
-
-    const messageText = chatMessage.trim();
-    const newMessage = {
-      text: messageText,
-      sender: userName,
-      time: 'Sending...',
-      isSending: true
-    };
-
-    // Optimistically add message to chat
-    setChatMessages(prev => [...prev, newMessage]);
-    setChatMessage('');
-
-    try {
-      // Send message via API
-      await dispatch(sendMessage({
-        senderId: currentUserId,
-        receiverId: Number(selectedChatUser.id),
-        content: messageText
-      })).unwrap();
-
-      // Update message status to sent
-      setChatMessages(prev =>
-        prev.map((msg, idx) =>
-          idx === prev.length - 1
-            ? { ...msg, time: 'Just now', isSending: false }
-            : msg
-        )
-      );
-
-      addToast('success', `Message sent to ${selectedChatUser.name}`);
-    } catch (error: any) {
-      console.error('Error sending message:', error);
-
-      // Mark message as failed
-      setChatMessages(prev =>
-        prev.map((msg, idx) =>
-          idx === prev.length - 1
-            ? { ...msg, time: 'Failed to send', isSending: false }
-            : msg
-        )
-      );
-
-      addToast('error', 'Failed to send message. Please try again.');
-    }
-  };
 
   // Process posts to skills format for cards
   const processPostsToSkills = (posts: any[]) => {
     if (!posts) return [];
     return posts.map(post => {
-      // Random category if missing
-      const randomCategory = randomCategories[Math.floor(Math.random() * randomCategories.length)];
-
+      // Listings made from Home are titled "offered <-> wanted".
+      const [offers, wants] = (post.title || 'Untitled').split('<->').map((part: string) => part.trim());
       return {
         id: post.id,
         userId: post.user?.id || 0,
-        userName: post.user?.name || 'Unknown',
+        userName: post.user?.name || 'Community member',
         userAvatar: post.user?.profile?.avatarUrl || getAvatarInitials(post.user?.name || 'U'),
-        skillTitle: post.title ? (post.title.includes('<->') ? post.title.split('<->')[0].trim() : post.title) : 'Untitled',
-        category: post.category?.name || randomCategory,
-        rating: 4.5, // Mock rating
-        reviews: Math.floor(Math.random() * 50) + 1, // Mock reviews
-        location: post.location || post.user?.profile?.location || 'Remote',
+        skillTitle: offers || 'Untitled',
+        wants: wants && wants.toLowerCase() !== 'any' ? wants : '',
+        category: post.category?.name || 'Other',
+        location: post.location || post.user?.profile?.location || 'Online',
         description: post.description,
-        tags: generateDefaultTags(post.title || ''),
+        tags: [] as string[],
         isFeatured: post.isFeatured || false,
-        isBookmarked: false, // Need to check user bookmarks
         userEmail: post.user?.email,
         userProfile: post.user?.profile,
         userSkills: post.user?.skills || []
       };
     });
   };
-
-
 
   // Helper function to get avatar initials
   const getAvatarInitials = (name: string) => {
@@ -363,17 +227,6 @@ export default function Marketplace() {
       .slice(0, 2);
   };
 
-  // Helper function to generate default tags
-  const generateDefaultTags = (title: string): string[] => {
-    const commonTags = ['Professional', 'Expert', 'Service', 'Consulting'];
-    const titleWords = title.toLowerCase().split(' ');
-
-    const matchingTags = commonTags.filter(tag =>
-      titleWords.some(word => tag.toLowerCase().includes(word))
-    );
-
-    return matchingTags.length > 0 ? matchingTags : ['Professional', 'Expert'];
-  };
 
   // Fetch all data on component mount
   // Fetch removed from simple useEffect, now in dispatch effect above
@@ -420,7 +273,8 @@ export default function Marketplace() {
 
       const activeEmail = userEmail || user?.email;
       if (!activeEmail) {
-        alert('Please log in to create a listing');
+        toast.info('Sign in to create a listing.');
+        navigate('/login');
         setSubmitting(false);
         return;
       }
@@ -459,32 +313,14 @@ export default function Marketplace() {
 
   // Process users to skills for display
   const skills = processPostsToSkills(reduxPosts);
-  const featuredSkills = skills.filter((skill) => skill.isFeatured);
 
-  const marketplaceStats = [
-    {
-      label: 'Active talent',
-      value: String(new Set(skills.map((skill) => skill.userId)).size),
-      detail: 'Verified members ready to swap'
-    },
-    {
-      label: 'Open listings',
-      value: String(skills.length),
-      detail: 'Skills currently available'
-    },
-    {
-      label: 'Featured matches',
-      value: String(featuredSkills.length),
-      detail: 'High-priority community picks'
-    }
-  ];
 
   // FIXED FILTER LOGIC
   const filteredSkills = skills.filter((skill) => {
     const matchesSearch = searchQuery === '' ||
       skill.skillTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       skill.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      skill.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      (skill.wants || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory = selectedCategory === 'all' ||
       skill.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -493,49 +329,62 @@ export default function Marketplace() {
   });
 
 
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const bookmarkItems = useSelector((state: RootState) => state.bookmarks.items) as any[];
+  const bookmarkedIds = new Set<number>(bookmarkItems.map((b: any) => Number(b.skillId)));
+  const [matchMine, setMatchMine] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => {
+    try { return localStorage.getItem('hfs.marketGuideDismissed') !== '1'; } catch { return true; }
+  });
+
+  useEffect(() => {
+    if (isAuthenticated) dispatch(fetchBookmarks());
+  }, [isAuthenticated, dispatch]);
+
+  const dismissGuide = () => {
+    setShowGuide(false);
+    try { localStorage.setItem('hfs.marketGuideDismissed', '1'); } catch { /* ignore */ }
+  };
+
+  // Logged-out visitors can browse; anything that needs an account sends them to sign in.
+  const requireAccount = (reason: string) => {
+    if (isAuthenticated) return true;
+    toast.info(`Sign in to ${reason}.`);
+    navigate('/login');
+    return false;
+  };
+
+  const handleBookmark = async (skill: any) => {
+    if (!requireAccount('save listings')) return;
+    try {
+      const res = await dispatch(toggleBookmark(Number(skill.id))).unwrap();
+      toast.success(res.bookmarked ? 'Saved. You can find it in your bookmarks.' : 'Removed from your saved listings.');
+      dispatch(fetchBookmarks());
+    } catch {
+      toast.error('Could not update your saved listings. Please try again.');
+    }
+  };
+
+  const mySkillsLower = currentUserSkills.map((s) => s.toLowerCase());
+  const wantsWhatITeach = (skill: any) =>
+    !!skill.wants && mySkillsLower.some((mine) => skill.wants.toLowerCase().includes(mine) || mine.includes(skill.wants.toLowerCase()));
+
+  const visibleSkills = filteredSkills
+    .filter((skill) => !matchMine || wantsWhatITeach(skill))
+    .sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured));
+
+  const hasFilters = searchQuery !== '' || selectedCategory !== 'all' || matchMine;
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setMatchMine(false);
+    if (searchParams.get('q')) navigate('/marketplace', { replace: true });
+  };
+  const peopleCount = new Set(skills.map((s) => s.userId)).size;
+
   return (
-    <div className="min-h-screen bg-neutral-50 pb-12">
+    <div className="pb-12">
       <NotificationToast toasts={toasts} removeToast={removeToast} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">Community marketplace</p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">Skill Marketplace</h1>
-              <p className="mt-1 text-sm text-neutral-600">Find people to learn from, collaborate with, and teach.</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className={`rounded-full border border-neutral-200 p-2.5 text-neutral-600 transition hover:bg-neutral-100 ${isRefreshing ? 'animate-spin' : ''}`}
-                title="Refresh Listings"
-              >
-                <RefreshCw className="h-5 w-5" />
-              </button>
-              <button
-                onClick={handleCreateListingClick}
-                disabled={authLoading}
-                className="flex items-center space-x-2 rounded-lg bg-primary-600 px-5 py-2.5 font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Plus className="h-5 w-5" />
-                <span>{authLoading ? 'Loading...' : 'Create Your Listing'}</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            {marketplaceStats.map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">{stat.label}</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">{stat.value}</p>
-                <p className="mt-1 text-[12px] text-slate-500">{stat.detail}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Create Listing Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -658,287 +507,27 @@ export default function Marketplace() {
           </div>
         )}
 
-        {/* Profile View Modal */}
-        {showProfileModal && selectedProfile && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-                <h2 className="text-2xl font-bold text-neutral-900">{selectedProfile.name}'s Profile</h2>
-                <button
-                  onClick={() => setShowProfileModal(false)}
-                  className="text-neutral-400 hover:text-neutral-600 transition"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="p-6">
-                {/* Profile Header */}
-                <div className="flex items-start space-x-6 mb-6">
-                  {selectedProfile.profile?.avatarUrl ? (
-                    <img
-                      src={selectedProfile.profile.avatarUrl}
-                      alt={selectedProfile.name}
-                      className="w-24 h-24 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 bg-gradient-to-br from-primary-600 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                      {getAvatarInitials(selectedProfile.name)}
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-neutral-900 mb-2">{selectedProfile.name}</h3>
-                    <div className="flex items-center space-x-4 text-sm text-neutral-600 mb-3">
-                      {selectedProfile.profile?.location && (
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {selectedProfile.profile.location}
-                        </div>
-                      )}
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-1" />
-                        {selectedProfile.email}
-                      </div>
-                    </div>
-                    {selectedProfile.profile?.bio && (
-                      <p className="text-neutral-700">{selectedProfile.profile.bio}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                {(selectedProfile.profile?.website || selectedProfile.profile?.socialLinks) && (
-                  <div className="mb-6">
-                    <h4 className="text-lg font-semibold text-neutral-900 mb-3">Links</h4>
-                    <div className="flex space-x-4">
-                      {selectedProfile.profile?.website && (
-                        <a
-                          href={selectedProfile.profile.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-primary-600 hover:text-primary-700"
-                        >
-                          <Globe className="w-4 h-4" />
-                          <span>Website</span>
-                        </a>
-                      )}
-                      {selectedProfile.profile?.socialLinks && (
-                        <a
-                          href={selectedProfile.profile.socialLinks}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-primary-600 hover:text-primary-700"
-                        >
-                          <Link className="w-4 h-4" />
-                          <span>Social Media</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Skills Section */}
-                {selectedProfile.skills && selectedProfile.skills.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-lg font-semibold text-neutral-900 mb-3">Skills</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProfile.skills.map((skill) => (
-                        <span
-                          key={skill.id}
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${skill.expertiseLevel === 'EXPERT'
-                            ? 'bg-success-100 text-success-800'
-                            : skill.expertiseLevel === 'INTERMEDIATE'
-                              ? 'bg-warning-100 text-warning-800'
-                              : 'bg-primary-100 text-primary-800'
-                            }`}
-                        >
-                          {skill.skillName} ({skill.expertiseLevel})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Listings Section */}
-                {selectedProfile.listings && selectedProfile.listings.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-lg font-semibold text-neutral-900 mb-3">Listings</h4>
-                    <div className="space-y-3">
-                      {selectedProfile.listings.map((listing) => (
-                        <div key={listing.id} className="border border-neutral-200 rounded-lg p-4">
-                          <h5 className="font-semibold text-neutral-900 mb-1">{listing.title}</h5>
-                          <p className="text-neutral-600 text-sm mb-2">{listing.description}</p>
-                          <div className="flex justify-between items-center text-sm text-neutral-500">
-                            <span>{listing.location}</span>
-                            {listing.isFeatured && (
-                              <span className="bg-warning-100 text-warning-800 px-2 py-1 rounded text-xs">
-                                Featured
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Portfolios Section */}
-                {selectedProfile.portfolios && selectedProfile.portfolios.length > 0 && (
-                  <div>
-                    <h4 className="text-lg font-semibold text-neutral-900 mb-3">Portfolio</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {selectedProfile.portfolios.map((portfolio) => (
-                        <div key={portfolio.id} className="border border-neutral-200 rounded-lg p-4">
-                          <h5 className="font-semibold text-neutral-900 mb-1">{portfolio.title}</h5>
-                          <p className="text-neutral-600 text-sm mb-2">{portfolio.description}</p>
-                          {portfolio.mediaUrl && (
-                            <div className="mt-2">
-                              {portfolio.mediaType === 'IMAGE' || portfolio.mediaUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                                <img
-                                  src={portfolio.mediaUrl}
-                                  alt={portfolio.title}
-                                  className="w-full h-32 object-cover rounded"
-                                />
-                              ) : (
-                                <a
-                                  href={portfolio.mediaUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary-600 hover:text-primary-700 text-sm"
-                                >
-                                  View Document
-                                </a>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Chat Modal */}
-        {showChatModal && selectedChatUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full h-[600px] flex flex-col">
-              <div className="flex items-center justify-between p-4 border-b border-neutral-200">
-                <div className="flex items-center space-x-3">
-                  {selectedChatUser.avatar && selectedChatUser.avatar.startsWith('http') ? (
-                    <img
-                      src={selectedChatUser.avatar}
-                      alt={selectedChatUser.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold">
-                      {typeof selectedChatUser.avatar === 'string' ? selectedChatUser.avatar?.charAt(0)?.toUpperCase() : 'U'}
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-neutral-900">{selectedChatUser.name}</h3>
-                    <p className="text-sm text-neutral-500">{selectedChatUser.skill}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowChatModal(false)}
-                  className="text-neutral-400 hover:text-neutral-600 transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 p-4 overflow-y-auto space-y-4">
-                {chatMessages.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-full text-neutral-400">
-                    <MessageSquare className="w-12 h-12 mb-3" />
-                    <p className="text-center">
-                      Start a conversation with {selectedChatUser.name}
-                    </p>
-                  </div>
-                )}
-                {chatMessages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${message.sender === userName ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${message.sender === userName
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-neutral-200 text-neutral-900'
-                        }`}
-                    >
-                      <p className="text-sm">{message.text}</p>
-                      <div className={`flex items-center space-x-1 text-xs mt-1 ${message.sender === userName ? 'text-primary-200' : 'text-neutral-500'}`}>
-                        <span>{message.time}</span>
-                        {message.sender === userName && !message.isSending && message.time !== 'Failed to send' && (
-                          <CheckCircle className="w-3 h-3" />
-                        )}
-                        {message.isSending && (
-                          <div className="w-3 h-3 border-2 border-primary-200 border-t-transparent rounded-full animate-spin" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 border-t border-neutral-200 space-y-3">
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Type a message..."
-                    className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!chatMessage.trim()}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowChatModal(false);
-                    navigate('/messages');
-                  }}
-                  className="w-full py-2 text-sm text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition"
-                >
-                  View All Conversations →
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Report Modal */}
         {showReportModal && selectedReportPost && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-lg">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
                             <AlertOctagon className="w-6 h-6 text-error-500" />
                             Report Post
                         </h3>
-                        <button onClick={() => setShowReportModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <X className="w-5 h-5 text-gray-400" />
+                        <button onClick={() => setShowReportModal(false)} className="p-2 hover:bg-neutral-100 rounded-full transition-colors">
+                            <X className="w-5 h-5 text-neutral-400" />
                         </button>
                     </div>
-                    <p className="text-sm text-gray-600 mb-4">You are reporting the post by <strong>{selectedReportPost.userName}</strong>. Our admin team will review this report.</p>
+                    <p className="text-sm text-neutral-600 mb-4">You are reporting the post by <strong>{selectedReportPost.userName}</strong>. Our admin team will review this report.</p>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-1">Reason for reporting</label>
+                            <label className="block text-sm font-bold text-neutral-700 mb-1">Reason for reporting</label>
                             <select 
                                 value={reportData.subject} 
                                 onChange={e => setReportData({...reportData, subject: e.target.value})}
-                                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-gray-50"
+                                className="w-full p-2.5 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-neutral-50"
                             >
                                 <option value="" disabled>Select a reason...</option>
                                 <option value="Spam or Misleading">Spam or Misleading</option>
@@ -949,16 +538,16 @@ export default function Marketplace() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-1">Additional details</label>
+                            <label className="block text-sm font-bold text-neutral-700 mb-1">Additional details</label>
                             <textarea 
                                 value={reportData.description}
                                 onChange={e => setReportData({...reportData, description: e.target.value})}
                                 placeholder="Please provide more context to help us investigate..."
-                                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-gray-50 resize-none h-24"
+                                className="w-full p-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-neutral-50 resize-none h-24"
                             />
                         </div>
                         <div className="flex gap-3 pt-2">
-                            <button onClick={() => setShowReportModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+                            <button onClick={() => setShowReportModal(false)} className="flex-1 py-2.5 border border-neutral-200 rounded-xl font-medium text-neutral-600 hover:bg-neutral-50 transition-colors">Cancel</button>
                             <button onClick={handleReportSubmit} className="flex-1 py-2.5 bg-error-600 text-white rounded-xl font-bold hover:bg-error-700 transition-colors">Submit Report</button>
                         </div>
                     </div>
@@ -979,252 +568,258 @@ export default function Marketplace() {
           />
         )}
 
-        {/* REST OF THE MARKETPLACE UI */}
-        <div className="mb-8">
-          <p className="text-neutral-600">Discover talented professionals and collaborate on projects</p>
-        </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search skills, people, or tags..."
-                className="w-full pl-10 pr-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center justify-center space-x-2 px-6 py-3 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition"
-            >
-              <Filter className="w-5 h-5" />
-              <span>Filters</span>
-            </button>
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-neutral-900">Find skills</h1>
+            <p className="mt-1 text-sm text-neutral-600">
+              {skills.length > 0
+                ? `${skills.length} skill${skills.length === 1 ? '' : 's'} offered by ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'}.`
+                : 'Browse what people teach and offer one of your skills in return.'}
+            </p>
           </div>
+          <button
+            onClick={() => { if (requireAccount('list a skill')) handleCreateListingClick(); }}
+            disabled={authLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+          >
+            <Plus className="h-4 w-4" />
+            List a skill you teach
+          </button>
+        </header>
 
-          {showFilters && (
-            <div className="mt-4 pt-4 border-t border-neutral-200">
-              <h3 className="font-semibold text-neutral-900 mb-3">Category</h3>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category === 'All' ? 'all' : category)}
-                    className={`px-4 py-2 rounded-lg font-medium transition ${selectedCategory === (category === 'All' ? 'all' : category.toLowerCase())
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                      }`}
-                  >
-                    {category}
-                  </button>
-                ))}
+        {showGuide && (
+          <section className="mb-6 rounded-lg border border-neutral-200 bg-white p-4" aria-label="How to start a swap">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-semibold text-neutral-900">How to start a swap</h2>
+                <ol className="mt-2 grid gap-2 text-sm text-neutral-600 sm:grid-cols-3">
+                  <li><span className="font-medium text-neutral-900">1.</span> Find a listing for something you want to learn.</li>
+                  <li><span className="font-medium text-neutral-900">2.</span> Press <span className="font-medium text-neutral-900">Request swap</span> and choose a skill to offer back.</li>
+                  <li><span className="font-medium text-neutral-900">3.</span> Suggest times. Follow the reply in <span className="font-medium text-neutral-900">My swaps</span>.</li>
+                </ol>
               </div>
-
-              {/* User Skills Quick Filters */}
-              {currentUserSkills.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="font-semibold text-neutral-900 mb-3">Your Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {currentUserSkills.slice(0, 8).map((skillName) => (
-                      <button
-                        key={skillName}
-                        onClick={() => setSearchQuery(skillName)}
-                        className="px-3 py-1 bg-success-100 text-success-700 rounded-full text-sm font-medium hover:bg-success-200 transition"
-                      >
-                        {skillName}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <button onClick={dismissGuide} className="shrink-0 rounded p-1 text-neutral-400 hover:text-neutral-700" aria-label="Hide this guide">
+                <X className="h-4 w-4" />
+              </button>
             </div>
+          </section>
+        )}
+
+        {/* Search and filters are always visible: no hidden "Filters" panel to discover. */}
+        <section className="mb-6 space-y-3">
+          <label className="flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 py-2.5 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100">
+            <Search className="h-4 w-4 text-neutral-500" aria-hidden />
+            <span className="sr-only">Search skills</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by skill or person, e.g. “React” or “Ayesha”"
+              className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+            />
+          </label>
+
+          {categories.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Category">
+            {categories.map((category) => {
+              const value = category === 'All' ? 'all' : category;
+              const active = selectedCategory.toLowerCase() === value.toLowerCase();
+              return (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(value)}
+                  aria-pressed={active}
+                  className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm ${
+                    active ? 'border-primary-600 bg-primary-50 font-medium text-primary-700' : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
+                  }`}
+                >
+                  {category}
+                </button>
+              );
+            })}
+          </div>
           )}
-        </div>
+
+          {isAuthenticated && currentUserSkills.length > 0 && (
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={matchMine}
+                onChange={(e) => setMatchMine(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Only show people who want to learn what I teach
+              <span className="text-neutral-500">({currentUserSkills.slice(0, 3).join(', ')}{currentUserSkills.length > 3 ? '…' : ''})</span>
+            </label>
+          )}
+        </section>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-neutral-400 animate-spin" />
-            </div>
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">Loading skills...</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading skills">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-56 rounded-lg skeleton" />
+            ))}
+          </div>
+        ) : skills.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center">
+            <h2 className="text-lg font-semibold text-neutral-900">No skills listed yet</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-neutral-600">Be the first. List something you can teach and others will be able to send you swap requests.</p>
+            <button
+              onClick={() => { if (requireAccount('list a skill')) handleCreateListingClick(); }}
+              className="mt-5 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            >
+              List a skill you teach
+            </button>
           </div>
         ) : (
           <>
-            {/* ALL SKILLS SECTION - MOVED ABOVE FEATURED */}
-            <div className="mb-8">
-              <div className="mb-4">
-                <h2 className="text-2xl font-bold text-neutral-900">
-                  All Skills
-                  <span className="ml-2 text-lg font-normal text-neutral-500">
-                    ({filteredSkills.length} results)
-                  </span>
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredSkills.map((skill) => (
-                  <SkillCard
-                    key={`${skill.userId}-${skill.id}`}
-                    skill={skill}
-                    onViewProfile={handleViewProfile}
-                    onChatClick={handleChatClick}
-                    onSwapClick={handleSwapClick}
-                    onReportClick={handleReportClick}
-                  />
-                ))}
-              </div>
-
-              {filteredSkills.length === 0 && (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Search className="w-8 h-8 text-neutral-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-neutral-900 mb-2">No skills found</h3>
-                  <p className="text-neutral-600">Try adjusting your search or filters</p>
-                </div>
+            <div className="mb-3 flex items-center justify-between text-sm">
+              <p className="text-neutral-600">
+                {visibleSkills.length === skills.length ? `Showing all ${skills.length}` : `${visibleSkills.length} of ${skills.length} match`}
+              </p>
+              {hasFilters && (
+                <button onClick={clearFilters} className="font-medium text-primary-700 hover:underline">Clear filters</button>
               )}
             </div>
 
-            {/* FEATURED SKILLS SECTION - MOVED BELOW ALL SKILLS */}
-            {featuredSkills.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center space-x-2 mb-4">
-                  <TrendingUp className="w-6 h-6 text-primary-600" />
-                  <h2 className="text-2xl font-bold text-neutral-900">Featured Skills</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {featuredSkills.map((skill) => (
-                    <SkillCard
-                      key={`${skill.userId}-${skill.id}`}
-                      skill={skill}
-                      onViewProfile={handleViewProfile}
-                      onChatClick={handleChatClick}
-                      onSwapClick={handleSwapClick}
-                      onReportClick={handleReportClick}
-                    />
-                  ))}
-                </div>
+            {visibleSkills.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {visibleSkills.map((skill) => (
+                  <SkillCard
+                    key={`${skill.userId}-${skill.id}`}
+                    skill={skill}
+                    isOwn={isAuthenticated && skill.userId === currentUserId}
+                    isBookmarked={bookmarkedIds.has(Number(skill.id))}
+                    wantsWhatITeach={isAuthenticated && wantsWhatITeach(skill)}
+                    onViewProfile={() => navigate(isAuthenticated && skill.userId === currentUserId ? '/profile' : `/profile/${skill.userId}`)}
+                    onChatClick={() => {
+                      if (!requireAccount('send messages')) return;
+                      const photo = typeof skill.userAvatar === 'string' && skill.userAvatar.startsWith('http') ? skill.userAvatar : undefined;
+                      navigate('/messages', { state: { startChatWith: { id: skill.userId, name: skill.userName, avatarUrl: photo } } });
+                    }}
+                    onSwapClick={() => { if (requireAccount('request a swap')) handleSwapClick(skill); }}
+                    onReportClick={() => { if (requireAccount('report a listing')) handleReportClick(skill); }}
+                    onBookmark={() => handleBookmark(skill)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center">
+                <h2 className="text-lg font-semibold text-neutral-900">
+                  {searchQuery ? `No skills match “${searchQuery}”` : 'No skills match these filters'}
+                </h2>
+                <p className="mt-2 text-sm text-neutral-600">Try a shorter word, another category, or clear the filters.</p>
+                <button onClick={clearFilters} className="mt-5 rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+                  Clear filters
+                </button>
               </div>
             )}
           </>
         )}
       </div>
-    </div >
+    </div>
   );
 }
 
-// Updated SkillCard component with chat functionality
-function SkillCard({ skill, onViewProfile, onChatClick, onSwapClick, onReportClick }: {
+function SkillCard({ skill, isOwn, isBookmarked, wantsWhatITeach, onViewProfile, onChatClick, onSwapClick, onReportClick, onBookmark }: {
   skill: any;
-  onViewProfile: (skill: any) => void;
-  onChatClick: (skill: any) => void;
-  onSwapClick: (skill: any) => void;
-  onReportClick: (skill: any) => void;
+  isOwn: boolean;
+  isBookmarked: boolean;
+  wantsWhatITeach: boolean;
+  onViewProfile: () => void;
+  onChatClick: () => void;
+  onSwapClick: () => void;
+  onReportClick: () => void;
+  onBookmark: () => void;
 }) {
-  const [isBookmarked, setIsBookmarked] = useState(skill.isBookmarked);
+  const hasPhoto = typeof skill.userAvatar === 'string' && skill.userAvatar.startsWith('http');
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
-      <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center space-x-3">
-            {skill.userAvatar && skill.userAvatar.startsWith('http') ? (
-              <img
-                src={skill.userAvatar}
-                alt={skill.userName}
-                className="h-11 w-11 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary-600 to-secondary-500 text-sm font-bold text-white">
-                {skill.userAvatar || skill.userName?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-            )}
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-neutral-900">{skill.userName}</h3>
-              <div className="mt-0.5 flex items-center space-x-1 text-xs text-neutral-500">
-                <Star className="h-3.5 w-3.5 fill-[#fbbf24] text-[#fbbf24]" />
-                <span className="font-medium text-neutral-700">{skill.rating}</span>
-                <span>({skill.reviews})</span>
-              </div>
-            </div>
-          </div>
+    <article className="flex flex-col rounded-lg border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300">
+      <div className="flex items-start justify-between gap-3">
+        <button onClick={onViewProfile} className="flex min-w-0 items-center gap-3 text-left">
+          {hasPhoto ? (
+            <img src={skill.userAvatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+              {skill.userAvatar || 'U'}
+            </span>
+          )}
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-neutral-900 hover:underline">{isOwn ? 'You' : skill.userName}</span>
+            <span className="flex items-center gap-1 truncate text-xs text-neutral-500">
+              <MapPin className="h-3 w-3" />
+              {skill.location}
+            </span>
+          </span>
+        </button>
 
-          <div className="flex items-center gap-1">
+        {!isOwn && (
+          <div className="flex shrink-0 items-center">
             <button
-              onClick={() => setIsBookmarked(!isBookmarked)}
-              className="rounded-full p-2 text-neutral-400 transition hover:bg-neutral-100 hover:text-primary-600"
-              aria-label="Toggle bookmark"
+              onClick={onBookmark}
+              className={`rounded p-1.5 hover:bg-neutral-100 ${isBookmarked ? 'text-primary-600' : 'text-neutral-400 hover:text-neutral-700'}`}
+              aria-label={isBookmarked ? 'Remove from saved' : 'Save listing'}
+              aria-pressed={isBookmarked}
+              title={isBookmarked ? 'Saved' : 'Save'}
             >
-              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current text-primary-600' : ''}`} />
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
             </button>
             <button
-              onClick={() => onReportClick(skill)}
-              className="rounded-full p-2 text-neutral-400 transition hover:bg-error-50 hover:text-error-500"
-              title="Report Post"
-              aria-label="Report post"
+              onClick={onReportClick}
+              className="rounded p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-error-600"
+              aria-label="Report this listing"
+              title="Report"
             >
               <AlertOctagon className="h-4 w-4" />
             </button>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="p-5">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h4 className="text-lg font-bold text-neutral-900 group-hover:text-primary-600 transition">
-            {skill.skillTitle}
-          </h4>
-          {skill.isFeatured && (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
-              Featured
-            </span>
-          )}
+      <div className="mt-4 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-neutral-500">{skill.category}</span>
+          {skill.isFeatured && <span className="rounded bg-warning-50 px-1.5 py-0.5 text-[11px] font-medium text-warning-700">Featured</span>}
+          {wantsWhatITeach && !isOwn && <span className="rounded bg-success-50 px-1.5 py-0.5 text-[11px] font-medium text-success-700">Good match for you</span>}
         </div>
+        <h3 className="mt-1 text-base font-semibold text-neutral-900">
+          <span className="text-sm font-normal text-neutral-500">Teaches </span>{skill.skillTitle}
+        </h3>
+        {skill.wants && (
+          <p className="mt-1 text-sm text-neutral-700">
+            <span className="text-neutral-500">Wants to learn </span>{skill.wants}
+          </p>
+        )}
+        {skill.description && <p className="mt-2 line-clamp-2 text-sm text-neutral-600">{skill.description}</p>}
+      </div>
 
-        <p className="mb-4 line-clamp-2 text-sm text-neutral-600">{skill.description}</p>
-
-        <div className="mb-4 flex items-center text-sm text-neutral-500">
-          <MapPin className="mr-1 h-4 w-4" />
-          {skill.location}
-        </div>
-
-        <div className="mb-5 flex flex-wrap gap-2">
-          {skill.tags.map((tag: string, index: number) => (
-            <span
-              key={index}
-              className="rounded-full bg-primary-50 px-2.5 py-1 text-[11px] font-medium text-primary-700"
+      <div className="mt-4 flex gap-2 border-t border-neutral-100 pt-4">
+        {isOwn ? (
+          <button onClick={onViewProfile} className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+            Your listing · view profile
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={onSwapClick}
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
             >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onChatClick(skill)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-primary-700"
-          >
-            <MessageSquare className="h-4 w-4" />
-            Chat
-          </button>
-          <button
-            onClick={() => onSwapClick(skill)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-accent-700"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Swap
-          </button>
-          <button
-            onClick={() => onViewProfile(skill)}
-            className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
-          >
-            View
-          </button>
-        </div>
+              <ArrowLeftRight className="h-4 w-4" />
+              Request swap
+            </button>
+            <button
+              onClick={onChatClick}
+              className="flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Message
+            </button>
+          </>
+        )}
       </div>
-    </div>
+    </article>
   );
 }

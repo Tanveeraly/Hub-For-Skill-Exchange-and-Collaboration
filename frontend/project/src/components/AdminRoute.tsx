@@ -10,7 +10,7 @@ interface Props {
 const AdminRoute: React.FC<Props> = ({ children }) => {
   const { isAuthenticated, loading, user } = useSelector((state: RootState) => state.auth);
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div></div>;
+  if (loading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div></div>;
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   

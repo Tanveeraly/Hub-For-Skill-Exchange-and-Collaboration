@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { X, Calendar, Clock, MessageSquare, CheckCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, X } from 'lucide-react';
 import { RootState, AppDispatch } from '../store/store';
 import { fetchTermsAcceptance, acceptTerms, setShowTermsModal } from '../store/swapAgreementSlice';
 import { createSwapRequest } from '../store/slices/swapsSlice';
 import TermsAndConditionsModal from './TermsAndConditionsModal';
+import Modal from './ui/Modal';
+import Button from './ui/Button';
 
 interface SwapRequestModalProps {
     isOpen: boolean;
@@ -17,244 +19,187 @@ interface SwapRequestModalProps {
     onSubmit: (data: any) => void;
 }
 
+type Slot = { date: string; time: string };
+const today = () => new Date().toISOString().slice(0, 10);
+
 export default function SwapRequestModal({ isOpen, onClose, recipientName, recipientSkill, skillId, userSkills, onSubmit }: SwapRequestModalProps) {
     const dispatch = useDispatch<AppDispatch>();
     const { hasAcceptedTerms, showTermsModal } = useSelector((state: RootState) => state.swapAgreement);
 
-    const [formData, setFormData] = useState({
-        skillOffered: '',
-        message: ''
-    });
-    const [timeSlots, setTimeSlots] = useState<{ date: string; time: string }[]>([
-        { date: '', time: '' }
-    ]);
-    const [showSuccess, setShowSuccess] = useState(false);
+    const [skillOffered, setSkillOffered] = useState('');
+    const [message, setMessage] = useState('');
+    const [slots, setSlots] = useState<Slot[]>([{ date: '', time: '' }]);
+    const [errors, setErrors] = useState<{ skill?: string; slots?: string; form?: string }>({});
+    const [sending, setSending] = useState(false);
+    const [sendAfterTerms, setSendAfterTerms] = useState(false);
+    const firstName = recipientName.split(' ')[0];
 
-    // Check T&C acceptance when modal opens
     useEffect(() => {
         if (isOpen) {
             dispatch(fetchTermsAcceptance());
+            setErrors({});
+            if (userSkills.length === 1) setSkillOffered(userSkills[0]);
         }
-    }, [isOpen, dispatch]);
+    }, [isOpen, dispatch, userSkills]);
 
-    const addTimeSlot = () => {
-        if (timeSlots.length < 3) {
-            setTimeSlots([...timeSlots, { date: '', time: '' }]);
-        }
+    const updateSlot = (index: number, field: keyof Slot, value: string) =>
+        setSlots((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
+
+    const validate = () => {
+        const next: typeof errors = {};
+        if (!skillOffered) next.skill = 'Choose the skill you will teach in return.';
+        const filled = slots.filter((s) => s.date && s.time);
+        if (filled.length === 0) next.slots = 'Suggest at least one date and time.';
+        else if (slots.some((s) => (s.date || s.time) && !(s.date && s.time))) next.slots = 'Each suggested time needs both a date and a time.';
+        else if (filled.some((s) => new Date(`${s.date}T${s.time}`) < new Date())) next.slots = 'Suggested times must be in the future.';
+        setErrors(next);
+        return Object.keys(next).length === 0;
     };
 
-    const removeTimeSlot = (index: number) => {
-        setTimeSlots(timeSlots.filter((_, i) => i !== index));
-    };
-
-    const handleTimeSlotChange = (index: number, field: 'date' | 'time', value: string) => {
-        const newSlots = [...timeSlots];
-        newSlots[index][field] = value;
-        setTimeSlots(newSlots);
+    const send = async () => {
+        setSending(true);
+        setErrors({});
+        try {
+            await dispatch(createSwapRequest({
+                skillId,
+                message,
+                offeredSkill: skillOffered,
+                requestedSkill: recipientSkill,
+                preferredTimeSlots: slots.filter((s) => s.date && s.time).map((s) => `${s.date} ${s.time}`),
+            })).unwrap();
+            onSubmit({ skillOffered, message });
+            setSkillOffered('');
+            setMessage('');
+            setSlots([{ date: '', time: '' }]);
+            onClose();
+        } catch (err: any) {
+            setErrors({ form: typeof err === 'string' ? err : err?.message || 'The request could not be sent. Please try again.' });
+        } finally {
+            setSending(false);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Check if user has accepted terms
+        if (!validate()) return;
         if (!hasAcceptedTerms) {
+            // Ask once, then carry on sending without making the user press the button again.
+            setSendAfterTerms(true);
             dispatch(setShowTermsModal(true));
             return;
         }
-
-        // Show success animation
-        setShowSuccess(true);
-
-        // Submit after a brief delay to show animation
-        setTimeout(() => {
-            dispatch(createSwapRequest({
-                skillId: skillId,
-                message: formData.message,
-                offeredSkill: formData.skillOffered,
-                requestedSkill: recipientSkill,
-                preferredTimeSlots: timeSlots.map(s => `${s.date} ${s.time}`)
-            })).then(() => {
-                onSubmit(formData);
-                setShowSuccess(false);
-                setFormData({ skillOffered: '', message: '' });
-                setTimeSlots([{ date: '', time: '' }]);
-                onClose();
-            });
-        }, 1500);
+        send();
     };
 
     const handleTermsAccept = async () => {
         await dispatch(acceptTerms());
-        // The modal will auto-close via Redux state
+        if (sendAfterTerms) {
+            setSendAfterTerms(false);
+            send();
+        }
     };
+
+    const noSkills = userSkills.length === 0;
 
     return (
         <>
-            {/* Terms and Conditions Modal */}
             <TermsAndConditionsModal
                 isOpen={showTermsModal}
-                onClose={() => dispatch(setShowTermsModal(false))}
+                onClose={() => { setSendAfterTerms(false); dispatch(setShowTermsModal(false)); }}
                 onAccept={handleTermsAccept}
             />
 
-            {/* Success Animation Overlay */}
-            <AnimatePresence>
-                {showSuccess && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            className="bg-white rounded-full p-8 shadow-2xl"
-                        >
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1, rotate: 360 }}
-                                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            >
-                                <CheckCircle className="w-20 h-20 text-success-500" />
-                            </motion.div>
-                        </motion.div>
+            <Modal isOpen={isOpen && !showTermsModal} onClose={onClose} title={`Request a swap with ${firstName}`}>
+                <p className="text-sm text-neutral-600">
+                    You'd learn <span className="font-medium text-neutral-900">{recipientSkill}</span> from {recipientName}, and teach them one of your skills in return.
+                </p>
+
+                {noSkills ? (
+                    <div className="mt-5 rounded-md border border-warning-200 bg-warning-50 p-4 text-sm">
+                        <p className="font-medium text-neutral-900">Add a skill to your profile first</p>
+                        <p className="mt-1 text-neutral-700">A swap needs something to offer back. Add at least one skill you can teach, then come back here.</p>
+                        <Link to="/profile" onClick={onClose} className="mt-3 inline-block rounded-md bg-primary-600 px-3 py-1.5 font-medium text-white hover:bg-primary-700">
+                            Go to my profile
+                        </Link>
                     </div>
-                )}
-            </AnimatePresence>
+                ) : (
+                    <form onSubmit={handleSubmit} className="mt-5 space-y-5" noValidate>
+                        <div>
+                            <label htmlFor="offer" className="mb-1.5 block text-sm font-medium text-neutral-700">What will you teach in return?</label>
+                            <select
+                                id="offer"
+                                value={skillOffered}
+                                onChange={(e) => { setSkillOffered(e.target.value); setErrors((x) => ({ ...x, skill: undefined })); }}
+                                aria-invalid={!!errors.skill}
+                                className={`w-full rounded-md border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 ${errors.skill ? 'border-error-500 focus:ring-error-100' : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-100'}`}
+                            >
+                                <option value="">Choose one of your skills</option>
+                                {userSkills.map((skill) => <option key={skill} value={skill}>{skill}</option>)}
+                            </select>
+                            {errors.skill && <p className="mt-1 text-xs text-error-700">{errors.skill}</p>}
+                        </div>
 
-            {/* Main Swap Request Modal */}
-            <AnimatePresence>
-                {isOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative"
-                        >
-                            <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-                                <h2 className="text-xl font-bold text-neutral-900">Propose a Swap</h2>
-                                <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                                <div className="bg-primary-50 p-4 rounded-lg">
-                                    <p className="text-sm text-primary-800">
-                                        You are requesting <span className="font-bold">{recipientSkill}</span> from <span className="font-bold">{recipientName}</span>
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-neutral-700 mb-1">
-                                        What skill can you offer?
-                                    </label>
-                                    <select
-                                        required
-                                        value={formData.skillOffered}
-                                        onChange={(e) => setFormData({ ...formData, skillOffered: e.target.value })}
-                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                                    >
-                                        <option value="">Select a skill...</option>
-                                        {userSkills.map((skill, idx) => (
-                                            <option key={idx} value={skill}>{skill}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="p-3 bg-primary-50 rounded-lg flex items-center space-x-3 border border-primary-100">
-                                        <div className="p-2 bg-primary-100 rounded-lg">
-                                            <CheckCircle className="w-5 h-5 text-primary-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-primary-900">Session Type: Video Call</p>
-                                            <p className="text-xs text-primary-700">Once accepted, you can join the session from the Swap Center.</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <label className="block text-sm font-medium text-neutral-700">
-                                            Preferred Time Slots (Max 3)
-                                        </label>
-                                        {timeSlots.length < 3 && (
-                                            <button
-                                                type="button"
-                                                onClick={addTimeSlot}
-                                                className="text-xs text-primary-600 hover:text-primary-800 font-medium"
-                                            >
-                                                + Add Slot
+                        <fieldset>
+                            <legend className="text-sm font-medium text-neutral-700">When could you meet?</legend>
+                            <p className="mt-0.5 text-xs text-neutral-500">Suggest up to 3 times. {firstName} picks one. Sessions happen on a video call in the app.</p>
+                            <div className="mt-2 space-y-2">
+                                {slots.map((slot, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <input
+                                            type="date"
+                                            min={today()}
+                                            aria-label={`Date ${index + 1}`}
+                                            value={slot.date}
+                                            onChange={(e) => updateSlot(index, 'date', e.target.value)}
+                                            className="min-w-0 flex-1 rounded-md border border-neutral-300 px-2.5 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                                        />
+                                        <input
+                                            type="time"
+                                            aria-label={`Time ${index + 1}`}
+                                            value={slot.time}
+                                            onChange={(e) => updateSlot(index, 'time', e.target.value)}
+                                            className="w-32 rounded-md border border-neutral-300 px-2.5 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                                        />
+                                        {slots.length > 1 && (
+                                            <button type="button" onClick={() => setSlots(slots.filter((_, i) => i !== index))} className="rounded p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700" aria-label={`Remove time ${index + 1}`}>
+                                                <X className="h-4 w-4" />
                                             </button>
                                         )}
                                     </div>
+                                ))}
+                            </div>
+                            {slots.length < 3 && (
+                                <button type="button" onClick={() => setSlots([...slots, { date: '', time: '' }])} className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:underline">
+                                    <Plus className="h-4 w-4" /> Add another time
+                                </button>
+                            )}
+                            {errors.slots && <p className="mt-1 text-xs text-error-700">{errors.slots}</p>}
+                        </fieldset>
 
-                                    {timeSlots.map((slot, index) => (
-                                        <div key={index} className="grid grid-cols-[1fr,1fr,auto] gap-2 items-end">
-                                            <div>
-                                                <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Date</label>
-                                                <div className="relative">
-                                                    <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 w-3 h-3" />
-                                                    <input
-                                                        type="date"
-                                                        required
-                                                        value={slot.date}
-                                                        onChange={(e) => handleTimeSlotChange(index, 'date', e.target.value)}
-                                                        className="w-full pl-7 pr-2 py-1.5 text-sm border border-neutral-300 rounded focus:ring-1 focus:ring-primary-500 outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Time</label>
-                                                <div className="relative">
-                                                    <Clock className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 w-3 h-3" />
-                                                    <input
-                                                        type="time"
-                                                        required
-                                                        value={slot.time}
-                                                        onChange={(e) => handleTimeSlotChange(index, 'time', e.target.value)}
-                                                        className="w-full pl-7 pr-2 py-1.5 text-sm border border-neutral-300 rounded focus:ring-1 focus:ring-primary-500 outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-                                            {timeSlots.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeTimeSlot(index)}
-                                                    className="p-2 text-neutral-400 hover:text-error-500"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                        <div>
+                            <label htmlFor="msg" className="mb-1.5 block text-sm font-medium text-neutral-700">Message <span className="font-normal text-neutral-500">(optional)</span></label>
+                            <textarea
+                                id="msg"
+                                rows={3}
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                placeholder={`Say hello and tell ${firstName} what you'd like to learn.`}
+                                className="w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                            />
+                        </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-neutral-700 mb-1">
-                                        Optional Message
-                                    </label>
-                                    <div className="relative">
-                                        <MessageSquare className="absolute left-3 top-3 text-neutral-400 w-4 h-4" />
-                                        <textarea
-                                            rows={2}
-                                            value={formData.message}
-                                            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                            placeholder="Introduce yourself or explain what you want to learn..."
-                                            className="w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 resize-none outline-none"
-                                        />
-                                    </div>
-                                </div>
+                        {errors.form && <p role="alert" className="rounded-md border border-error-200 bg-error-50 px-3 py-2 text-sm text-error-700">{errors.form}</p>}
 
-                                <div className="pt-2">
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-2.5 rounded-lg font-bold hover:shadow-lg transition-all active:scale-[0.98]"
-                                    >
-                                        Send Request
-                                    </button>
-                                </div>
-                            </form>
-                        </motion.div>
-                    </div>
+                        <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-xs text-neutral-500">{firstName} will be notified. You can follow it in My swaps.</p>
+                            <div className="flex gap-2">
+                                <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+                                <Button type="submit" loading={sending}>Send request</Button>
+                            </div>
+                        </div>
+                    </form>
                 )}
-            </AnimatePresence>
+            </Modal>
         </>
     );
 }

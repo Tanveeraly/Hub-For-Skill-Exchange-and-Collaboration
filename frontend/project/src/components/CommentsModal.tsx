@@ -40,7 +40,7 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ isOpen, onClose, postId }
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[80vh]"
+                    className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[80vh]"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-neutral-100">
@@ -72,7 +72,7 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ isOpen, onClose, postId }
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 bg-neutral-50 rounded-2xl rounded-tl-none p-3">
+                                    <div className="flex-1 bg-neutral-50 rounded-xl rounded-tl-none p-3">
                                         <div className="flex items-baseline justify-between mb-1">
                                             <span className="font-semibold text-sm text-neutral-900">{comment.user?.name}</span>
                                             <span className="text-xs text-neutral-500">

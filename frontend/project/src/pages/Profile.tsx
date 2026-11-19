@@ -8,28 +8,23 @@ import {
   Save,
   Globe,
   MapPin,
-  Briefcase,
   Mail,
-  Award,
   FileText,
   Video,
   Image,
   Download,
-  Layout,
   ExternalLink,
-  Github as GithubIcon,
-  Twitter as TwitterIcon,
-  Linkedin as LinkedinIcon,
   Lock,
-  Eye as EyeIcon,
 } from "lucide-react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import SkillModal from "../components/SkillModal";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../store/store";
 import { updatePostVisibility } from "../store/slices/postsSlice";
-import Tabs from "../components/ui/Tabs";
+import { API_BASE } from '../config';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '../lib/toast';
 
 interface PortfolioItem {
   id: string;
@@ -70,12 +65,12 @@ const normalizeExpertiseLevel = (level: string): "Beginner" | "Intermediate" | "
 
 export default function Profile() {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [activeTab, setActiveTab] = useState<"about" | "skills" | "portfolio" | "listings">("about");
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [profileVisibility, setProfileVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
 
@@ -109,7 +104,7 @@ export default function Profile() {
       setError("");
 
       const response = await axios.post(
-        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/addMultipleUserSkills/${profile.email}`,
+        `${API_BASE}/auth/addMultipleUserSkills/${profile.email}`,
         {
           skills: skills.map(skill => ({
             skillName: skill.name,
@@ -166,7 +161,7 @@ export default function Profile() {
       setError("");
 
       await axios.delete(
-        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/removeUserSkill/${skillId}`,
+        `${API_BASE}/auth/removeUserSkill/${skillId}`,
         { withCredentials: true }
       );
 
@@ -180,20 +175,6 @@ export default function Profile() {
     }
   };
 
-  const getExpertiseColor = (level: string) => {
-    switch (level) {
-      case "Beginner":
-        return "bg-success-50 text-success-700 border-success-100";
-      case "Intermediate":
-        return "bg-sky-50 text-sky-700 border-sky-100";
-      case "Advanced":
-        return "bg-primary-50 text-primary-700 border-indigo-100";
-      case "Expert":
-        return "bg-rose-50 text-rose-700 border-rose-100";
-      default:
-        return "bg-neutral-50 text-neutral-700 border-neutral-100";
-    }
-  };
 
   // ---------------------- FETCH PROFILE ----------------------
   useEffect(() => {
@@ -204,7 +185,7 @@ export default function Profile() {
     try {
       setLoading(true);
       setError("");
-      const response = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", {
+      const response = await axios.get(`${API_BASE}/auth/getme`, {
         withCredentials: true,
       });
 
@@ -242,7 +223,7 @@ export default function Profile() {
     try {
       console.log("Fetching user skills for:", email);
       const response = await axios.get(
-        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getUserSkills/${email}`,
+        `${API_BASE}/auth/getUserSkills/${email}`,
         { withCredentials: true }
       );
 
@@ -267,7 +248,7 @@ export default function Profile() {
     try {
       console.log("Fetching portfolio items for:", email);
       const response = await axios.get(
-        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getUserPortfolios/${email}`,
+        `${API_BASE}/auth/getUserPortfolios/${email}`,
         { withCredentials: true }
       );
 
@@ -297,7 +278,7 @@ export default function Profile() {
 
   const fetchUserListings = async () => {
     try {
-      const response = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/posts/my-posts", {
+      const response = await axios.get(`${API_BASE}/posts/my-posts`, {
         withCredentials: true
       });
       if (response.data.statusCode === 200 || response.data.success) {
@@ -415,7 +396,7 @@ export default function Profile() {
       formData.append("profileVisibility", profileVisibility);
 
       await axios.post(
-        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/update-profile/${profile.email}`,
+        `${API_BASE}/auth/update-profile/${profile.email}`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -485,7 +466,7 @@ export default function Profile() {
       });
 
       const response = await axios.post(
-        `https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/addPortfolio/${profile.email}`,
+        `${API_BASE}/auth/addPortfolio/${profile.email}`,
         formData,
         {
           headers: {
@@ -541,7 +522,7 @@ export default function Profile() {
       case "video":
         return <Video className="w-5 h-5 text-success-500" />;
       case "document":
-        return <FileText className="w-5 h-5 text-orange-500" />;
+        return <FileText className="w-5 h-5 text-warning-500" />;
       default:
         return <FileText className="w-5 h-5 text-neutral-500" />;
     }
@@ -554,7 +535,7 @@ export default function Profile() {
       case "video":
         return "bg-success-50 text-success-700 border-success-200";
       case "document":
-        return "bg-orange-50 text-orange-700 border-orange-200";
+        return "bg-warning-50 text-warning-700 border-warning-200";
       default:
         return "bg-neutral-50 text-neutral-700 border-neutral-200";
     }
@@ -571,7 +552,7 @@ export default function Profile() {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100">
+          <div className="w-full h-full flex items-center justify-center bg-neutral-50">
             <div className="text-center p-4">
               <div className={`p-4 rounded-full ${getMediaTypeColor(item.mediaType)} mb-3 mx-auto`}>
                 {getMediaIcon(item.mediaType)}
@@ -583,10 +564,10 @@ export default function Profile() {
           </div>
         )}
 
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
+        <div className="absolute inset-0">
           <button
             onClick={() => window.open(item.url, "_blank")}
-            className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 bg-white text-neutral-700 px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2 font-medium"
+            className="absolute bottom-2 right-2 flex items-center space-x-2 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
           >
             <Download className="w-4 h-4" />
             <span>View</span>
@@ -625,439 +606,332 @@ export default function Profile() {
     fetchUserProfile();
   };
 
+  // Show feedback as toasts so it is visible wherever the user is on the page.
+  useEffect(() => {
+    if (success) { toast.success(success); setSuccess(""); }
+  }, [success]);
+  useEffect(() => {
+    if (error) { toast.error(error); setError(""); }
+  }, [error]);
+
+  const checklist = [
+    { done: !!(profile.avatrurl || avatarPreview), label: "Add a profile photo", action: () => { setIsEditing(true); } },
+    { done: !!profile.bio, label: "Write a short bio", action: () => setIsEditing(true) },
+    { done: !!profile.location, label: "Add your location", action: () => setIsEditing(true) },
+    { done: userSkills.length > 0, label: "Add a skill you can teach", action: () => setIsSkillModalOpen(true) },
+    { done: userListings.length > 0, label: "Create a listing so people can request a swap", action: () => navigate("/marketplace") },
+  ];
+  const remaining = checklist.filter((c) => !c.done);
+  const hasErrors = !!(validationErrors.bio || validationErrors.website || validationErrors.socialLink);
+
+  const setListingVisibility = async (listingId: number, visibility: "PUBLIC" | "PRIVATE") => {
+    try {
+      await dispatch(updatePostVisibility({ postId: listingId, visibility })).unwrap();
+      setUserListings((prev) => prev.map((l) => (l.id === listingId ? { ...l, visibility } : l)));
+      setSuccess(visibility === "PUBLIC" ? "Listing is now visible to everyone." : "Listing is now hidden from others.");
+    } catch {
+      setError("Could not change who can see this listing.");
+    }
+  };
+
   // ---------------------- LOADING ----------------------
   if (loading && !profile.email) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 pt-20 pb-12 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-neutral-600">Loading your profile...</p>
-        </div>
+      <div className="mx-auto max-w-4xl space-y-4" aria-busy="true" aria-label="Loading your profile">
+        <div className="h-48 rounded-lg skeleton" />
+        <div className="h-32 rounded-lg skeleton" />
       </div>
     );
   }
 
+  const fieldClass = (err?: string) =>
+    `w-full rounded-md border bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 ${
+      err ? "border-error-500 focus:ring-error-100" : "border-neutral-300 focus:border-primary-500 focus:ring-primary-100"
+    }`;
+
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="pb-12">
+      <div className="mx-auto max-w-4xl space-y-6">
+        {/* ---------- Header ---------- */}
+        <section className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+          <div className="relative h-32 bg-neutral-100">
+            {(coverPreview || profile.coverimageUrl) && (
+              <img src={coverPreview || profile.coverimageUrl} alt="" className="h-full w-full object-cover" />
+            )}
+            {isEditing && (
+              <button
+                onClick={() => document.getElementById("coverUpload")?.click()}
+                className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-neutral-800 shadow-sm hover:bg-neutral-50"
+              >
+                <Camera className="h-3.5 w-3.5" /> Change cover
+              </button>
+            )}
+            <input type="file" id="coverUpload" accept="image/*" className="hidden" onChange={handleCoverChange} />
+          </div>
 
-        {/* GLOBAL FEEDBACK */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mb-6 bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center justify-between text-rose-800"
-            >
-              <div className="flex items-center space-x-3">
-                <X className="w-5 h-5 text-rose-500" />
-                <span className="font-bold text-sm">{error}</span>
-              </div>
-              <button onClick={() => setError("")}><X className="w-4 h-4" /></button>
-            </motion.div>
-          )}
-          {success && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mb-6 bg-success-50 border border-success-100 p-4 rounded-2xl flex items-center justify-between text-success-800"
-            >
-              <div className="flex items-center space-x-3">
-                <Plus className="w-5 h-5 text-success-500" />
-                <span className="font-bold text-sm">{success}</span>
-              </div>
-              <button onClick={() => setSuccess("")}><X className="w-4 h-4" /></button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="flex flex-col lg:flex-row gap-8">
-
-          {/* LEFT SIDEBAR: Personal Branding */}
-          <div className="lg:w-1/3 space-y-8">
-            {/* Identity Card */}
-            <div className="group relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
-              {/* Cover Image Banner */}
-              <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-primary-100 to-primary-100 overflow-hidden">
-                {(coverPreview || profile.coverimageUrl) && (
-                  <img src={coverPreview || profile.coverimageUrl} className="w-full h-full object-cover opacity-60" />
-                )}
-                {isEditing && (
-                  <button
-                    onClick={() => document.getElementById("coverUpload")?.click()}
-                    className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-xl text-neutral-600 hover:text-primary-600 shadow-sm transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <Camera className="w-4 h-4" />
-                  </button>
-                )}
-                <input type="file" id="coverUpload" accept="image/*" className="hidden" onChange={handleCoverChange} />
-              </div>
-
-              <div className="relative flex flex-col items-center text-center mt-12">
-                {/* Avatar */}
-                <div className="relative mb-6">
-                  <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-primary-50 shadow-lg">
-                    {avatarPreview || profile.avatrurl ? (
-                      <img src={avatarPreview || profile.avatrurl} alt={profile.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-4xl font-black text-primary-600">{getInitials(profile.name)}</span>
-                    )}
-                  </div>
+          <div className="px-6 pb-6">
+            <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex items-end gap-4">
+                <div className="relative">
+                  {avatarPreview || profile.avatrurl ? (
+                    <img src={avatarPreview || profile.avatrurl} alt="" className="h-24 w-24 rounded-full border-4 border-white object-cover" />
+                  ) : (
+                    <span className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-primary-100 text-2xl font-semibold text-primary-700">
+                      {getInitials(profile.name || "U")}
+                    </span>
+                  )}
                   {isEditing && (
-                    <button onClick={() => document.getElementById("avatarUpload")?.click()}                     className="absolute -bottom-2 -right-2 rounded-full border-4 border-white bg-primary-600 p-3 text-white shadow-lg transition-all hover:bg-primary-700">
-                      <Camera className="w-5 h-5" />
+                    <button
+                      onClick={() => document.getElementById("avatarUpload")?.click()}
+                      className="absolute bottom-0 right-0 rounded-full border-2 border-white bg-neutral-900 p-1.5 text-white hover:bg-neutral-700"
+                      aria-label="Change profile photo"
+                    >
+                      <Camera className="h-4 w-4" />
                     </button>
                   )}
                   <input type="file" id="avatarUpload" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                 </div>
-
-                <h1 className="text-2xl font-black text-neutral-900 mb-1 flex items-center gap-2">
-                  {profile.name}
-                  {profileVisibility === 'PRIVATE' && (
-                    <span title="Profile hidden from others" className="inline-flex items-center gap-1 bg-rose-100 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200">
-                      <Lock className="w-2.5 h-2.5" />Only Me
-                    </span>
-                  )}
-                </h1>
-                <p className="text-primary-600 font-bold text-sm mb-4">Verified Professional</p>
-
-                <div className="flex items-center space-x-2 bg-neutral-50 px-4 py-2 rounded-2xl mb-6">
-                  <MapPin className="w-4 h-4 text-neutral-400" />
-                  <span className="text-sm font-bold text-neutral-600">{profile.location || "Earth"}</span>
-                </div>
-
-                <div className="w-full flex gap-3">
-                  <button
-                    onClick={() => { if (isEditing) handleProfileUpdate(); else setIsEditing(true); }}
-                    className="flex-1 rounded-lg bg-primary-600 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-700 flex items-center justify-center space-x-2"
-                  >
-                    {isEditing ? <Save className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
-                    <span>{isEditing ? "Save" : "Edit Profile"}</span>
-                  </button>
-                  {isEditing && (
-                    <button onClick={handleCancelEdit} className="rounded-lg bg-neutral-100 p-3 text-neutral-400 transition-all hover:text-error-500">
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Profile Privacy Toggle — shown only in edit mode */}
-                {isEditing && (
-                  <div className="w-full mt-3">
-                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2 text-center">Profile Visibility</p>
-                    <div className="flex items-center bg-neutral-100 rounded-full p-1 gap-1 w-full">
-                      <button
-                        type="button"
-                        onClick={() => setProfileVisibility('PUBLIC')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-black transition-all ${
-                          profileVisibility === 'PUBLIC'
-                            ? 'bg-white shadow text-primary-700'
-                            : 'text-neutral-500 hover:text-neutral-700'
-                        }`}
-                      >
-                        <Globe className="w-3.5 h-3.5" />
-                        Public
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setProfileVisibility('PRIVATE')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-black transition-all ${
-                          profileVisibility === 'PRIVATE'
-                            ? 'bg-white shadow text-rose-600'
-                            : 'text-neutral-500 hover:text-neutral-700'
-                        }`}
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                        Only Me
-                      </button>
-                    </div>
-                    {profileVisibility === 'PRIVATE' && (
-                      <p className="text-[10px] text-rose-500 font-bold text-center mt-2">Your profile is hidden from other users</p>
+                <div className="pb-1">
+                  <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-neutral-900">
+                    {profile.name}
+                    {profileVisibility === "PRIVATE" && (
+                      <span className="inline-flex items-center gap-1 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-600">
+                        <Lock className="h-3 w-3" /> Hidden
+                      </span>
                     )}
-                  </div>
-                )}
+                  </h1>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-neutral-500">
+                    {profile.location ? (
+                      <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{profile.location}</span>
+                    ) : (
+                      <span>No location yet</span>
+                    )}
+                    <span className="inline-flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{profile.email}</span>
+                  </p>
+                </div>
               </div>
+
+              {!isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+                >
+                  <Edit2 className="h-4 w-4" /> Edit profile
+                </button>
+              )}
             </div>
 
-            {/* About & Contact */}
-            <div className="rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
-              <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-6 px-2 text-center lg:text-left">Biography</h3>
-              {isEditing ? (
-                <textarea
-                  value={profile.bio}
-                  onChange={(e) => handleProfileChange("bio", e.target.value)}
-                  className="w-full p-4 bg-neutral-50 border-2 border-neutral-100 rounded-2xl focus:border-primary-500 transition-all outline-none resize-none text-sm font-medium"
-                  rows={4}
-                  placeholder="Share your journey..."
-                />
-              ) : (
-                <p className="text-neutral-600 text-sm leading-relaxed font-medium">
-                  {profile.bio || "No professional summary provided yet."}
-                </p>
-              )}
+            {/* ---------- View / edit details ---------- */}
+            {isEditing ? (
+              <form
+                className="mt-6 space-y-4 border-t border-neutral-100 pt-6"
+                onSubmit={(e) => { e.preventDefault(); if (!hasErrors) handleProfileUpdate(); }}
+                noValidate
+              >
+                <div>
+                  <label htmlFor="bio" className="mb-1.5 block text-sm font-medium text-neutral-700">Bio</label>
+                  <textarea
+                    id="bio"
+                    rows={4}
+                    value={profile.bio}
+                    onChange={(e) => handleProfileChange("bio", e.target.value)}
+                    placeholder="A few lines about what you do and what you'd like to learn."
+                    className={fieldClass(validationErrors.bio)}
+                  />
+                  <p className={`mt-1 text-xs ${validationErrors.bio ? "text-error-700" : "text-neutral-500"}`}>
+                    {validationErrors.bio || `${(profile.bio || "").length}/500 characters`}
+                  </p>
+                </div>
 
-              <div className="mt-8 pt-8 border-t border-neutral-50 space-y-4">
-                <div className="flex items-center space-x-4 text-neutral-600 bg-neutral-50/50 p-3 rounded-2xl">
-                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center">
-                    <Mail className="w-4 h-4 text-primary-600" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="location" className="mb-1.5 block text-sm font-medium text-neutral-700">Location</label>
+                    <input id="location" value={profile.location} onChange={(e) => handleProfileChange("location", e.target.value)} placeholder="e.g. Lahore, or Online" className={fieldClass()} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-neutral-400 uppercase">Email</p>
-                    <p className="text-sm font-bold">{profile.email}</p>
+                    <label htmlFor="website" className="mb-1.5 block text-sm font-medium text-neutral-700">Website</label>
+                    <input id="website" type="url" value={profile.website} onChange={(e) => handleProfileChange("website", e.target.value)} placeholder="https://" className={fieldClass(validationErrors.website)} />
+                    {validationErrors.website && <p className="mt-1 text-xs text-error-700">Enter a full address starting with https://</p>}
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4 text-neutral-600 bg-neutral-50/50 p-3 rounded-2xl">
-                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center">
-                    <Globe className="w-4 h-4 text-success-600" />
+                <div>
+                  <label htmlFor="social" className="mb-1.5 block text-sm font-medium text-neutral-700">LinkedIn, GitHub or X profile</label>
+                  <input id="social" type="url" value={profile.socialLink || ""} onChange={(e) => handleProfileChange("socialLink", e.target.value)} placeholder="https://linkedin.com/in/…" className={fieldClass(validationErrors.socialLink)} />
+                  {validationErrors.socialLink && <p className="mt-1 text-xs text-error-700">{validationErrors.socialLink}</p>}
+                </div>
+
+                <fieldset>
+                  <legend className="mb-1.5 text-sm font-medium text-neutral-700">Who can see your profile</legend>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {([
+                      { value: "PUBLIC", title: "Everyone", body: "People can find you and send swap requests." },
+                      { value: "PRIVATE", title: "Only me", body: "You won't appear in search or on other people's screens." },
+                    ] as const).map((opt) => (
+                      <label key={opt.value} className={`flex cursor-pointer gap-3 rounded-md border p-3 ${profileVisibility === opt.value ? "border-primary-600 bg-primary-50" : "border-neutral-300"}`}>
+                        <input type="radio" name="visibility" checked={profileVisibility === opt.value} onChange={() => setProfileVisibility(opt.value)} className="mt-0.5" />
+                        <span>
+                          <span className="block text-sm font-medium text-neutral-900">{opt.title}</span>
+                          <span className="block text-xs text-neutral-600">{opt.body}</span>
+                        </span>
+                      </label>
+                    ))}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-black text-neutral-400 uppercase">Website</p>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={profile.website}
-                        onChange={(e) => handleProfileChange("website", e.target.value)}
-                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold w-full"
-                        placeholder="Link..."
-                      />
-                    ) : (
-                      <a href={profile.website} target="_blank" className="text-sm font-bold truncate block max-w-[150px]">{profile.website || "Not provided"}</a>
-                    )}
-                  </div>
+                </fieldset>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={handleCancelEdit} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={hasErrors || loading} className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60">
+                    <Save className="h-4 w-4" /> {loading ? "Saving…" : "Save changes"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="mt-5 space-y-3">
+                {profile.bio ? (
+                  <p className="max-w-2xl whitespace-pre-line text-sm leading-relaxed text-neutral-700">{profile.bio}</p>
+                ) : (
+                  <p className="text-sm text-neutral-500">You haven't written a bio yet.</p>
+                )}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {profile.website && (
+                    <a href={profile.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary-700 hover:underline">
+                      <Globe className="h-3.5 w-3.5" />{profile.website.replace(/^https?:\/\//, "")}
+                    </a>
+                  )}
+                  {profile.socialLink && (
+                    <a href={profile.socialLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary-700 hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" />{profile.socialLink.replace(/^https?:\/\/(www\.)?/, "")}
+                    </a>
+                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Social Pulse */}
-            <div className="flex justify-center lg:justify-start gap-4 px-2">
-              <a href="#" className="w-12 h-12 bg-white rounded-2xl shadow-md border border-neutral-100 flex items-center justify-center text-neutral-400 hover:text-primary-600 hover:scale-110 transition-all">
-                <LinkedinIcon className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-12 h-12 bg-white rounded-2xl shadow-md border border-neutral-100 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:scale-110 transition-all">
-                <GithubIcon className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-12 h-12 bg-white rounded-2xl shadow-md border border-neutral-100 flex items-center justify-center text-neutral-400 hover:text-primary-400 hover:scale-110 transition-all">
-                <TwitterIcon className="w-5 h-5" />
-              </a>
-            </div>
+            )}
           </div>
+        </section>
 
-          {/* RIGHT CONTENT: Dynamic Activity */}
-          <div className="lg:w-2/3 space-y-8">
-            {/* Tabs Header */}
-            <div className="sticky top-20 z-10 rounded-xl border border-neutral-200 bg-white px-4 pt-2 shadow-sm">
-              <Tabs
-                active={activeTab}
-                onChange={(value) => setActiveTab(value as typeof activeTab)}
-                items={[
-                  { value: 'about', label: 'About' },
-                  { value: 'skills', label: 'Skills' },
-                  { value: 'portfolio', label: 'Portfolio' },
-                  { value: 'listings', label: 'Listings' },
-                ]}
-              />
+        {/* ---------- Finish your profile ---------- */}
+        {remaining.length > 0 && !isEditing && (
+          <section className="rounded-lg border border-neutral-200 bg-white p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-neutral-900">Finish your profile</h2>
+              <span className="text-sm text-neutral-500">{checklist.length - remaining.length} of {checklist.length} done</span>
             </div>
-
-            {/* TAB CONTENT */}
-            <div className="min-h-[500px]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {activeTab === 'about' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-[32px] p-8 text-white shadow-2xl">
-                        <h4 className="text-lg font-black mb-2">Professional Progress</h4>
-                        <p className="text-primary-100 text-sm mb-6">You are in the top 10% of contributors this month.</p>
-                        <div className="space-y-4">
-                          <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                            <div className="h-full bg-white w-3/4" />
-                          </div>
-                          <p className="text-xs font-bold opacity-80">Profile Strength: 75%</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-[32px] p-8 border border-neutral-100 shadow-xl shadow-primary-900/5">
-                        <h4 className="text-lg font-black text-neutral-900 mb-4">Quick Stats</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-neutral-50 rounded-2xl">
-                            <p className="text-2xl font-black text-neutral-900">{userSkills.length}</p>
-                            <p className="text-[10px] font-black text-neutral-400 uppercase">Specialties</p>
-                          </div>
-                          <div className="p-4 bg-neutral-50 rounded-2xl">
-                            <p className="text-2xl font-black text-neutral-900">{portfolioItems.length}</p>
-                            <p className="text-[10px] font-black text-neutral-400 uppercase">Projects</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'skills' && (
-                    <div className="bg-white rounded-[32px] p-10 border border-neutral-100 shadow-xl shadow-primary-900/5">
-                      <div className="flex items-center justify-between mb-10">
-                        <div>
-                          <h3 className="text-2xl font-black text-neutral-900">Area of Expertise</h3>
-                          <p className="text-sm text-neutral-500 font-medium">Verify your skills to stand out in the community.</p>
-                        </div>
-                        <button
-                          onClick={() => setIsSkillModalOpen(true)}
-                          className="bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all flex items-center space-x-2"
-                        >
-                          <Plus className="w-5 h-5" />
-                          <span>Add New</span>
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {userSkills.map((skill) => (
-                          <div key={skill.id} className="group bg-neutral-50 p-6 rounded-[24px] flex items-center justify-between hover:bg-white hover:shadow-xl hover:shadow-primary-900/5 transition-all border border-transparent hover:border-primary-100">
-                            <div className="flex items-center space-x-4">
-                              <div className={`p-4 rounded-2xl border-2 ${getExpertiseColor(skill.expertiseLevel)}`}>
-                                <Award className="w-6 h-6" />
-                              </div>
-                              <div>
-                                <h4 className="font-black text-neutral-900">{skill.skillName}</h4>
-                                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{skill.expertiseLevel}</span>
-                              </div>
-                            </div>
-                            <button onClick={() => handleRemoveSkill(skill.id)} className="opacity-0 group-hover:opacity-100 p-2 text-neutral-400 hover:text-error-500 transition-all">
-                              <X className="w-5 h-5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      {userSkills.length === 0 && (
-                        <div className="text-center py-20 bg-neutral-50 rounded-[32px] border-2 border-dashed border-neutral-200">
-                          <Award className="w-16 h-16 text-neutral-200 mx-auto mb-4" />
-                          <p className="text-neutral-400 font-black">Ready to showcase your talents?</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTab === 'portfolio' && (
-                    <div className="space-y-8">
-                      <div className="flex items-center justify-between px-2">
-                        <h3 className="text-2xl font-black text-neutral-900">Showcase</h3>
-                        <button
-                          onClick={() => setShowUploadModal(true)}
-                          className="bg-neutral-900 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-neutral-800 transition-all flex items-center space-x-2"
-                        >
-                          <Upload className="w-4 h-4" />
-                          <span>Upload Work</span>
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {portfolioItems.map((item) => (
-                          <PortfolioItemCard key={item.id} item={item} />
-                        ))}
-                      </div>
-
-                      {portfolioItems.length === 0 && (
-                        <div className="text-center py-32 bg-white rounded-[32px] border border-neutral-100 shadow-xl shadow-primary-900/5">
-                          <Briefcase className="w-16 h-16 text-neutral-100 mx-auto mb-4" />
-                          <p className="text-neutral-400 font-black">Your portfolio is currently a blank canvas.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTab === 'listings' && (
-                    <div className="bg-white rounded-[32px] p-10 border border-neutral-100 shadow-xl shadow-primary-900/5">
-                      <h3 className="text-2xl font-black text-neutral-900 mb-10 text-center lg:text-left">Swap Listings</h3>
-                      <div className="grid grid-cols-1 gap-6">
-                        {userListings.map((listing) => (
-                          <div key={listing.id} className="bg-neutral-50 p-8 rounded-[28px] border border-neutral-100 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-xl hover:shadow-primary-900/5 transition-all">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="text-xl font-black text-neutral-900">{listing.title}</h4>
-                                {listing.visibility === 'PRIVATE' ? (
-                                  <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200">
-                                    <Lock className="w-2.5 h-2.5" />Only Me
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 bg-primary-50 text-primary-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-primary-100">
-                                    <Globe className="w-2.5 h-2.5" />Public
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-neutral-500 text-sm font-medium line-clamp-2">{listing.description}</p>
-                            </div>
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <span className="bg-white px-4 py-2 rounded-xl text-xs font-black text-neutral-600 border border-neutral-100 flex items-center space-x-2">
-                                <MapPin className="w-3 h-3" />
-                                <span>{listing.location || "Remote"}</span>
-                              </span>
-                              {/* Visibility Toggle */}
-                              <div className="flex items-center bg-neutral-100 rounded-full p-1 gap-1">
-                                <button
-                                  type="button"
-                                  title="Make Public"
-                                  onClick={async () => {
-                                    try {
-                                      await dispatch(updatePostVisibility({ postId: listing.id, visibility: 'PUBLIC' })).unwrap();
-                                      setUserListings(prev => prev.map(l => l.id === listing.id ? { ...l, visibility: 'PUBLIC' } : l));
-                                      setSuccess('Post set to Public');
-                                    } catch { setError('Failed to update visibility'); }
-                                  }}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-                                    listing.visibility !== 'PRIVATE'
-                                      ? 'bg-white shadow text-primary-700'
-                                      : 'text-neutral-400 hover:text-neutral-600'
-                                  }`}
-                                >
-                                  <Globe className="w-3 h-3" />
-                                  Public
-                                </button>
-                                <button
-                                  type="button"
-                                  title="Only Me"
-                                  onClick={async () => {
-                                    try {
-                                      await dispatch(updatePostVisibility({ postId: listing.id, visibility: 'PRIVATE' })).unwrap();
-                                      setUserListings(prev => prev.map(l => l.id === listing.id ? { ...l, visibility: 'PRIVATE' } : l));
-                                      setSuccess('Post set to Only Me');
-                                    } catch { setError('Failed to update visibility'); }
-                                  }}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-                                    listing.visibility === 'PRIVATE'
-                                      ? 'bg-white shadow text-rose-600'
-                                      : 'text-neutral-400 hover:text-neutral-600'
-                                  }`}
-                                >
-                                  <Lock className="w-3 h-3" />
-                                  Only Me
-                                </button>
-                              </div>
-                              <button className="p-3 bg-white text-neutral-400 rounded-xl hover:text-primary-600 hover:shadow-md transition-all">
-                                <ExternalLink className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {userListings.length === 0 && (
-                        <div className="text-center py-20 bg-neutral-50 rounded-[32px]">
-                          <p className="text-neutral-400 font-black">No active exchange offers found.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+              <div className="h-full rounded-full bg-primary-600" style={{ width: `${((checklist.length - remaining.length) / checklist.length) * 100}%` }} />
             </div>
+            <ul className="mt-4 space-y-2">
+              {checklist.map((c) => (
+                <li key={c.label} className="flex items-center justify-between gap-3 text-sm">
+                  <span className={c.done ? "text-neutral-400 line-through" : "text-neutral-800"}>{c.label}</span>
+                  {!c.done && (
+                    <button onClick={c.action} className="shrink-0 font-medium text-primary-700 hover:underline">Do it</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ---------- Skills ---------- */}
+        <section className="rounded-lg border border-neutral-200 bg-white p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-900">Skills I can teach</h2>
+              <p className="mt-0.5 text-sm text-neutral-500">These help people decide whether to swap with you.</p>
+            </div>
+            <button onClick={() => setIsSkillModalOpen(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+              <Plus className="h-4 w-4" /> Add skill
+            </button>
           </div>
-        </div>
+          {userSkills.length > 0 ? (
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {userSkills.map((skill) => (
+                <li key={skill.id} className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 py-1 pl-3 pr-1 text-sm">
+                  <span className="font-medium text-neutral-900">{skill.skillName}</span>
+                  <span className="text-neutral-500">{skill.expertiseLevel}</span>
+                  <button onClick={() => handleRemoveSkill(skill.id)} className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-error-600" aria-label={`Remove ${skill.skillName}`}>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 rounded-md border border-dashed border-neutral-300 p-4 text-sm text-neutral-600">
+              No skills yet. Add at least one so people know what you can teach.
+            </p>
+          )}
+        </section>
+
+        {/* ---------- Listings ---------- */}
+        <section className="rounded-lg border border-neutral-200 bg-white p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-900">My listings</h2>
+              <p className="mt-0.5 text-sm text-neutral-500">Listings appear in Find skills, where people send you swap requests.</p>
+            </div>
+            <button onClick={() => navigate("/marketplace")} className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+              <Plus className="h-4 w-4" /> New listing
+            </button>
+          </div>
+          {userListings.length > 0 ? (
+            <ul className="mt-4 divide-y divide-neutral-100">
+              {userListings.map((listing) => {
+                const [offers, wants] = String(listing.title || "").split("<->").map((x: string) => x.trim());
+                return (
+                  <li key={listing.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-medium text-neutral-900">Teaches {offers}</p>
+                      {wants && <p className="text-sm text-neutral-600">Wants to learn {wants}</p>}
+                      {listing.description && <p className="mt-1 line-clamp-2 text-sm text-neutral-500">{listing.description}</p>}
+                    </div>
+                    <label className="flex shrink-0 items-center gap-2 text-sm text-neutral-600">
+                      Visible to
+                      <select
+                        value={listing.visibility === "PRIVATE" ? "PRIVATE" : "PUBLIC"}
+                        onChange={(e) => setListingVisibility(listing.id, e.target.value as "PUBLIC" | "PRIVATE")}
+                        className="rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                      >
+                        <option value="PUBLIC">Everyone</option>
+                        <option value="PRIVATE">Only me</option>
+                      </select>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="mt-4 rounded-md border border-dashed border-neutral-300 p-4 text-sm text-neutral-600">
+              You have no listings. Create one in Find skills so others can send you swap requests.
+            </p>
+          )}
+        </section>
+
+        {/* ---------- Portfolio ---------- */}
+        <section className="rounded-lg border border-neutral-200 bg-white p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-900">Portfolio</h2>
+              <p className="mt-0.5 text-sm text-neutral-500">Examples of your work: images, videos or PDFs.</p>
+            </div>
+            <button onClick={() => setShowUploadModal(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+              <Upload className="h-4 w-4" /> Add work
+            </button>
+          </div>
+          {portfolioItems.length > 0 ? (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {portfolioItems.map((item) => (
+                <PortfolioItemCard key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 rounded-md border border-dashed border-neutral-300 p-4 text-sm text-neutral-600">
+              Nothing here yet. Adding one or two examples makes people more likely to accept your swap requests.
+            </p>
+          )}
+        </section>
       </div>
 
       {/* MODALS */}
@@ -1071,27 +945,27 @@ export default function Profile() {
       {/* PORTFOLIO UPLOAD MODAL */}
       {showUploadModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-[32px] p-10 w-full max-w-2xl relative shadow-2xl max-h-[90vh] overflow-y-auto">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-xl p-10 w-full max-w-2xl relative shadow-lg max-h-[90vh] overflow-y-auto">
             <button onClick={() => setShowUploadModal(false)} className="absolute top-8 right-8 text-neutral-400 hover:text-neutral-600">
               <X className="w-6 h-6" />
             </button>
             <div className="text-center mb-10">
-              <div className="w-16 h-16 bg-neutral-900 text-white rounded-[20px] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gray-200">
+              <div className="w-16 h-16 bg-neutral-900 text-white rounded-[20px] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-neutral-200">
                 <Upload className="w-8 h-8" />
               </div>
-              <h3 className="text-2xl font-black text-neutral-900">Feature a Project</h3>
+              <h3 className="text-2xl font-bold text-neutral-900">Feature a Project</h3>
               <p className="text-neutral-500 font-medium mt-1">Share your best work with the community</p>
             </div>
             <div className="space-y-6">
-              <input value={portfolioData.title} onChange={(e) => setPortfolioData({ ...portfolioData, title: e.target.value })} type="text" placeholder="Project Title" className="w-full p-4 bg-neutral-50 border-2 border-neutral-100 rounded-2xl outline-none focus:border-primary-500 transition-all font-bold" />
-              <textarea value={portfolioData.description} onChange={(e) => setPortfolioData({ ...portfolioData, description: e.target.value })} placeholder="Project Description" className="w-full p-4 bg-neutral-50 border-2 border-neutral-100 rounded-2xl outline-none focus:border-primary-500 transition-all font-medium h-32 resize-none" />
-              <div className="border-2 border-dashed border-neutral-200 rounded-[28px] p-10 text-center bg-neutral-50 hover:border-primary-500 transition-all cursor-pointer relative">
+              <input value={portfolioData.title} onChange={(e) => setPortfolioData({ ...portfolioData, title: e.target.value })} type="text" placeholder="Project Title" className="w-full p-4 bg-neutral-50 border-2 border-neutral-100 rounded-xl outline-none focus:border-primary-500 transition-all font-bold" />
+              <textarea value={portfolioData.description} onChange={(e) => setPortfolioData({ ...portfolioData, description: e.target.value })} placeholder="Project Description" className="w-full p-4 bg-neutral-50 border-2 border-neutral-100 rounded-xl outline-none focus:border-primary-500 transition-all font-medium h-32 resize-none" />
+              <div className="border-2 border-dashed border-neutral-200 rounded-xl p-10 text-center bg-neutral-50 hover:border-primary-500 transition-all cursor-pointer relative">
                 <input type="file" id="portfolioFile" accept="image/*,video/*,.pdf" onChange={handlePortfolioFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
                 <Upload className="w-10 h-10 text-neutral-300 mx-auto mb-4" />
-                <p className="text-sm font-black text-neutral-500">{portfolioFile ? portfolioFile.name : "Select Media File"}</p>
-                <p className="text-[10px] font-black text-neutral-400 mt-1 uppercase">Images, Video or PDF (Max 50MB)</p>
+                <p className="text-sm font-bold text-neutral-500">{portfolioFile ? portfolioFile.name : "Select Media File"}</p>
+                <p className="text-[10px] font-bold text-neutral-400 mt-1 uppercase">Images, Video or PDF (Max 50MB)</p>
               </div>
-              <button onClick={handlePortfolioUpload} disabled={loading} className="w-full py-5 bg-primary-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-primary-200 hover:bg-primary-700 disabled:opacity-50 transition-all">
+              <button onClick={handlePortfolioUpload} disabled={loading} className="w-full py-5 bg-primary-600 text-white rounded-xl font-bold text-lg shadow-xl hover:bg-primary-700 disabled:opacity-50 transition-all">
                 {loading ? "Publishing..." : "Publish Project"}
               </button>
             </div>

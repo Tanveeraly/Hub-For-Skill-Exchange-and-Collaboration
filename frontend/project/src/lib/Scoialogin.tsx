@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../store/slices/authSlice';
+import { API_BASE } from '../config';
 
 interface GoogleAuthButtonProps {
   setSuccess: (message: string) => void;
   setError: (message: string) => void;
+  text?: 'signin_with' | 'signup_with' | 'continue_with';
 }
 
-export default function GoogleAuthButton({ setSuccess, setError }: GoogleAuthButtonProps) {
+export default function GoogleAuthButton({ setSuccess, setError, text = 'signin_with' }: GoogleAuthButtonProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
@@ -22,7 +24,7 @@ export default function GoogleAuthButton({ setSuccess, setError }: GoogleAuthBut
       const token = credentialResponse.credential;
 
       const res = await axios.post(
-        'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/social-login',
+        `${API_BASE}/auth/social-login`,
         { token },
         { withCredentials: true } // allow cookies
       );
@@ -43,7 +45,7 @@ export default function GoogleAuthButton({ setSuccess, setError }: GoogleAuthBut
         setSuccess('Logged in with Google successfully!');
         dispatch(setUser(user));
         if (user.role === 'ADMIN') {
-          navigate('/admin-portal');
+          navigate('/admin');
         } else {
           navigate('/home');
         }
@@ -63,7 +65,9 @@ export default function GoogleAuthButton({ setSuccess, setError }: GoogleAuthBut
   return (
     <GoogleLogin
       onSuccess={handleGoogleLogin}
-      onError={() => setError('Google login failed')}
+      onError={() => setError("Google sign-in did not work. Try again or use your email.")}
+      text={text}
+      width="320"
     />
   );
 }

@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store/store';
-import { Heart, MessageCircle, RefreshCw, Send, Image, Video, Calendar, TrendingUp, Users, Eye, Bookmark, Filter, SortDesc, Sparkles, X, Zap, Bot, ArrowRightLeft, UserPlus, AlertOctagon, Globe, Lock } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, MessageCircle, Image, Calendar, Bookmark, X, ArrowRightLeft, AlertOctagon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import NotificationToast, { Toast } from '../components/NotificationToast';
 import SwapRequestModal from '../components/SwapRequestModal';
 import CommentsModal from '../components/CommentsModal';
 import { fetchPosts, createPost, likePost, unlikePost } from '../store/slices/postsSlice';
-import { toggleBookmark } from '../store/slices/bookmarksSlice';
-import { sendConnectionRequest, fetchPendingRequests, fetchConnections, fetchSentRequests } from '../store/slices/connectionSlice';
+import { toggleBookmark, fetchBookmarks } from '../store/slices/bookmarksSlice';
+import { fetchPendingRequests, fetchConnections, fetchSentRequests } from '../store/slices/connectionSlice';
 import { fetchReceivedSwaps, fetchSentSwaps } from '../store/slices/swapsSlice';
 import { submitComplaint } from '../store/slices/adminSlice';
+import { API_BASE } from '../config';
 
 interface Post {
     id: string;
@@ -26,7 +28,8 @@ interface Post {
     comments: number;
     isLiked: boolean;
     isSaved: boolean;
-    isSkillMatch: boolean;
+    mediaUrl?: string;
+    isSkillMatch?: boolean;
     matchedUserName?: string;
     sharedSkills?: string[];
 }
@@ -48,14 +51,14 @@ interface UserProfile {
     }>;
 }
 
-type FilterType = 'all' | 'offering' | 'seeking';
+type FilterType = 'all' | 'matches';
 type SortType = 'recent' | 'popular' | 'trending';
 
 export default function HomeFeed() {
     const dispatch = useDispatch<AppDispatch>();
-    const { items: posts, loading } = useSelector((state: RootState) => state.posts);
+    const { items: posts } = useSelector((state: RootState) => state.posts);
     const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
-    const { pendingRequests, connections, sentRequests } = useSelector((state: RootState) => state.connections);
+    const { pendingRequests } = useSelector((state: RootState) => state.connections);
     const { received: receivedSwaps, sent: sentSwaps } = useSelector((state: RootState) => state.swaps);
     const [localPosts, setPosts] = useState<Post[]>([]);
     const [postContent, setPostContent] = useState({
@@ -66,7 +69,6 @@ export default function HomeFeed() {
     const [showCreatePost, setShowCreatePost] = useState(false);
     const [toasts, setToasts] = useState<Toast[]>([]);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-    const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
     const [filter, setFilter] = useState<FilterType>('all');
     const [sort, setSort] = useState<SortType>('recent');
     const [showSwapModal, setShowSwapModal] = useState(false);
@@ -100,7 +102,6 @@ export default function HomeFeed() {
             dispatch(fetchSentSwaps());
             fetchUserProfile(); // Fetch full profile for sidebar
         }
-        fetchSuggestedUsers();
     }, [dispatch, isAuthenticated, user]);
 
     useEffect(() => {
@@ -130,7 +131,7 @@ export default function HomeFeed() {
 
     const fetchUserProfile = async () => {
         try {
-            const res = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme', {
+            const res = await axios.get(`${API_BASE}/auth/getme`, {
                 withCredentials: true
             });
             if (res.data.data) {
@@ -142,19 +143,6 @@ export default function HomeFeed() {
     };
 
     // fetchPosts removed as it's now handled by Redux thunk dispatch
-
-    const fetchSuggestedUsers = async () => {
-        try {
-            const res = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getAllUsersFullInfo', {
-                withCredentials: true
-            });
-            if (res.data.statusCode === 200) {
-                setSuggestedUsers((res.data.data || []).slice(0, 5));
-            }
-        } catch (error) {
-            console.error('Error fetching suggested users:', error);
-        }
-    };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -183,8 +171,8 @@ export default function HomeFeed() {
     };
 
     const handleCreatePost = () => {
-        if (!postContent.skillOffered || !postContent.skillWanted || !postContent.description) {
-            addToast('error', 'Please fill in all fields');
+        if (!postContent.skillOffered.trim() || !postContent.skillWanted.trim()) {
+            addToast('error', 'Fill in what you can teach and what you want to learn.');
             return;
         }
 
@@ -194,13 +182,13 @@ export default function HomeFeed() {
             isFeatured: false,
             file: selectedFile,
             visibility: postVisibility,
-        })).then(() => {
+        })).unwrap().then(() => {
             setPostContent({ skillOffered: '', skillWanted: '', description: '' });
             setPostVisibility('PUBLIC');
             handleRemoveFile();
             setShowCreatePost(false);
-            addToast('success', 'Post created successfully!');
-        });
+            addToast('success', 'Posted. It now appears in the feed and in Find skills.');
+        }).catch(() => addToast('error', 'Your post could not be published. Please try again.'));
     };
 
     const handleLike = async (postId: string) => {
@@ -218,13 +206,14 @@ export default function HomeFeed() {
         }
     };
 
-    const handleSave = (postId: string) => {
-        dispatch(toggleBookmark(parseInt(postId))).then(() => {
-            // Optionally manual update state if slice doesn't auto-update list
-            // For now relying on slice or re-fetch
-            dispatch(fetchPosts()); // brute force refresh or optimistic update
-            addToast('success', 'Bookmark updated');
-        });
+    const handleSave = async (postId: string) => {
+        try {
+            const res = await dispatch(toggleBookmark(parseInt(postId))).unwrap();
+            addToast('success', res.bookmarked ? 'Saved.' : 'Removed from saved.');
+            dispatch(fetchBookmarks());
+        } catch {
+            addToast('error', 'Could not update your saved posts. Please try again.');
+        }
     };
 
     const handleSwapClick = (post: Post) => {
@@ -237,9 +226,8 @@ export default function HomeFeed() {
         setShowCommentsModal(true);
     };
 
-    const handleSwapSubmit = (data: any) => {
-        console.log('Swap requested:', data);
-        addToast('success', `Swap request sent to ${selectedPost?.userName}!`);
+    const handleSwapSubmit = () => {
+        addToast('success', `Swap request sent to ${selectedPost?.userName}. Follow it in My swaps.`);
     };
 
     const handleReportSubmit = async () => {
@@ -270,9 +258,25 @@ export default function HomeFeed() {
         return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
     };
 
+    const bookmarkItems = useSelector((state: RootState) => state.bookmarks.items) as any[];
+    const bookmarkedIds = new Set<number>(bookmarkItems.map((b: any) => Number(b.skillId)));
+    useEffect(() => {
+        if (isAuthenticated) dispatch(fetchBookmarks());
+    }, [isAuthenticated, dispatch]);
+
     const allSwaps = [...receivedSwaps, ...sentSwaps];
     const activeSwaps = allSwaps.filter((swap: any) => swap.status === 'ACCEPTED');
-    const pendingSwapApprovals = allSwaps.filter((swap: any) => ['PENDING', 'RESCHEDULED'].includes(swap.status));
+    const myId = Number(user?.id || userProfile?.id);
+    const pendingSwapApprovals = allSwaps.filter((swap: any) => {
+        const iSent = Number(swap.senderId) === myId;
+        if (swap.status === 'PENDING') return !iSent;
+        if (swap.status === 'MORE_INFO_REQUESTED') return iSent;
+        if (swap.status === 'RESCHEDULED') {
+            const initiator = typeof swap.proposedTimeSlot === 'object' ? Number(swap.proposedTimeSlot?.initiatorId) : NaN;
+            return initiator !== myId;
+        }
+        return false;
+    });
     const completedSwaps = allSwaps.filter((swap: any) => swap.status === 'COMPLETED');
 
     const getProfileCompleteness = () => {
@@ -310,10 +314,12 @@ export default function HomeFeed() {
         }
     };
 
-    const filteredPosts = localPosts.filter(post => {
+    // "Good matches" = posts from people who want to learn something I teach.
+    const myTeachSkills: string[] = (userProfile?.skills ?? user?.skills ?? []).map((s: any) => String(s.skillName || '').toLowerCase()).filter(Boolean);
+    const filteredPosts = localPosts.filter((post) => {
         if (filter === 'all') return true;
-        // This is simplified - in real app you'd filter based on actual criteria
-        return true;
+        const wanted = String(post.skillWanted || '').toLowerCase();
+        return !!wanted && myTeachSkills.some((mine) => wanted.includes(mine) || mine.includes(wanted));
     });
 
     const sortedPosts = [...filteredPosts].sort((a, b) => {
@@ -326,17 +332,17 @@ export default function HomeFeed() {
         {
             label: 'Active Swaps',
             value: String(activeSwaps.length),
-            detail: activeSwaps.length ? `${activeSwaps.length} live agreements` : 'No active swaps yet',
+            detail: activeSwaps.length ? 'In progress now' : 'No active swaps yet',
             tone: 'bg-[#EAF3FF] text-[#0A66C2]'
         },
         {
-            label: 'Pending Requests',
+            label: 'Waiting for you',
             value: String(pendingRequests.length + pendingSwapApprovals.length),
             detail: pendingRequests.length || pendingSwapApprovals.length ? `${pendingRequests.length} connection + ${pendingSwapApprovals.length} swap actions` : 'Nothing waiting for review',
             tone: 'bg-[#EAFBF0] text-[#15803D]'
         },
         {
-            label: 'Completed This Month',
+            label: 'Completed',
             value: String(completedSwaps.length),
             detail: completedSwaps.length ? `${completedSwaps.length} completed exchanges` : 'No completed swaps yet',
             tone: 'bg-[#F3E8FF] text-[#7C3AED]'
@@ -365,9 +371,11 @@ export default function HomeFeed() {
         });
 
     const profileName = userProfile?.name || user?.name || 'there';
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-12">
+        <div className="min-h-screen bg-neutral-50 pb-12">
             <NotificationToast toasts={toasts} removeToast={removeToast} />
 
             {showSwapModal && selectedPost && (
@@ -392,24 +400,24 @@ export default function HomeFeed() {
 
             {showReportModal && selectedPost && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="flex items-center gap-2 text-xl font-bold text-gray-900">
+                            <h3 className="flex items-center gap-2 text-xl font-bold text-neutral-900">
                                 <AlertOctagon className="h-6 w-6 text-error-500" />
                                 Report Post
                             </h3>
-                            <button onClick={() => setShowReportModal(false)} className="rounded-full p-2 transition-colors hover:bg-gray-100">
-                                <X className="h-5 w-5 text-gray-400" />
+                            <button onClick={() => setShowReportModal(false)} className="rounded-full p-2 transition-colors hover:bg-neutral-100">
+                                <X className="h-5 w-5 text-neutral-400" />
                             </button>
                         </div>
-                        <p className="mb-4 text-sm text-gray-600">You are reporting the post by <strong>{selectedPost.userName}</strong>. Our admin team will review this report.</p>
+                        <p className="mb-4 text-sm text-neutral-600">You are reporting the post by <strong>{selectedPost.userName}</strong>. Our admin team will review this report.</p>
                         <div className="space-y-4">
                             <div>
-                                <label className="mb-1 block text-sm font-bold text-gray-700">Reason for reporting</label>
+                                <label className="mb-1 block text-sm font-bold text-neutral-700">Reason for reporting</label>
                                 <select
                                     value={reportData.subject}
                                     onChange={e => setReportData({ ...reportData, subject: e.target.value })}
-                                    className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 focus:ring-2 focus:ring-primary-500"
+                                    className="w-full rounded-lg border border-neutral-200 bg-neutral-50 p-2.5 focus:ring-2 focus:ring-primary-500"
                                 >
                                     <option value="" disabled>Select a reason...</option>
                                     <option value="Spam or Misleading">Spam or Misleading</option>
@@ -420,16 +428,16 @@ export default function HomeFeed() {
                                 </select>
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-bold text-gray-700">Additional details</label>
+                                <label className="mb-1 block text-sm font-bold text-neutral-700">Additional details</label>
                                 <textarea
                                     value={reportData.description}
                                     onChange={e => setReportData({ ...reportData, description: e.target.value })}
                                     placeholder="Please provide more context to help us investigate..."
-                                    className="h-24 w-full resize-none rounded-lg border border-gray-200 bg-gray-50 p-3 focus:ring-2 focus:ring-primary-500"
+                                    className="h-24 w-full resize-none rounded-lg border border-neutral-200 bg-neutral-50 p-3 focus:ring-2 focus:ring-primary-500"
                                 />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowReportModal(false)} className="flex-1 rounded-xl border border-gray-200 py-2.5 font-medium text-gray-600 transition-colors hover:bg-gray-50">Cancel</button>
+                                <button onClick={() => setShowReportModal(false)} className="flex-1 rounded-xl border border-neutral-200 py-2.5 font-medium text-neutral-600 transition-colors hover:bg-neutral-50">Cancel</button>
                                 <button onClick={handleReportSubmit} className="flex-1 rounded-xl bg-error-600 py-2.5 font-bold text-white transition-colors hover:bg-error-700">Submit Report</button>
                             </div>
                         </div>
@@ -440,74 +448,70 @@ export default function HomeFeed() {
             <div className="mx-auto max-w-5xl">
                 <div className="mb-6">
                     <h1 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">
-                        Good morning, {profileName}.
+                        {greeting}, {profileName}.
                     </h1>
                     <p className="mt-1 text-sm text-neutral-500">
-                        You have {activeSwaps.length} active swaps and {pendingSwapApprovals.length} escrow agreement{pendingSwapApprovals.length === 1 ? '' : 's'} pending confirmation.
+                        {activeSwaps.length === 0 && pendingSwapApprovals.length === 0
+                            ? 'You have no swaps yet. Find someone to learn from in the marketplace.'
+                            : `You have ${activeSwaps.length} active swap${activeSwaps.length === 1 ? '' : 's'} and ${pendingSwapApprovals.length} waiting for your reply.`}
                     </p>
                 </div>
 
                 {pendingSwapApprovals.length > 0 && (
-                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+                    <div className="mb-5 rounded-xl border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-900 shadow-sm">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                                    <Sparkles className="h-4 w-4" />
-                                </div>
                                 <div>
-                                    <span className="font-semibold">Escrow Agreement Requires Your Confirmation</span>
-                                    <p className="mt-0.5 text-xs text-amber-800">
+                                    <span className="font-semibold">A swap is waiting for your reply</span>
+                                    <p className="mt-0.5 text-xs text-warning-800">
                                         {pendingSwapApprovals[0]?.status === 'RESCHEDULED'
                                             ? `A reschedule request for ${pendingSwapApprovals[0]?.skill?.title || 'your swap'} is waiting for your review.`
                                             : `A swap request from ${pendingSwapApprovals[0]?.sender?.name || 'a member'} is waiting for your confirmation.`}
                                     </p>
                                 </div>
                             </div>
+                            <Link to="/swaps" className="shrink-0 rounded-md bg-warning-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-warning-800">
+                                Review
+                            </Link>
                         </div>
                     </div>
                 )}
 
-                <div className="mb-6 grid gap-3 md:grid-cols-4">
+                <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
                     {homeStats.map((stat) => (
-                        <div key={stat.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.tone}`}>
-                                {stat.label === 'Active Swaps' && <TrendingUp className="h-5 w-5" />}
-                                {stat.label === 'Pending Messages' && <MessageCircle className="h-5 w-5" />}
-                                {stat.label === 'Completed This Month' && <Calendar className="h-5 w-5" />}
-                                {stat.label === 'Credibility Score' && <Users className="h-5 w-5" />}
-                            </div>
-                            <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">{stat.label}</p>
-                            <p className="mt-1 text-2xl font-bold text-slate-900">{stat.value}</p>
-                            <p className="mt-1 text-[12px] text-slate-500">{stat.detail}</p>
+                        <div key={stat.label} className="rounded-lg border border-neutral-200 bg-white p-4">
+                            <p className="text-sm text-neutral-500">{stat.label}</p>
+                            <p className="mt-1 text-2xl font-bold text-neutral-900">{stat.value}</p>
+                            <p className="mt-1 text-[12px] text-neutral-500">{stat.detail}</p>
                         </div>
                     ))}
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+                <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
                     <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-lg font-semibold text-slate-900">Upcoming Sessions</h2>
-                        <button type="button" className="text-sm font-medium text-[#0A66C2] hover:text-[#004182]">
-                            View all →
-                        </button>
+                        <h2 className="text-lg font-semibold text-neutral-900">Upcoming Sessions</h2>
+                        <Link to="/calendar" className="text-sm font-medium text-primary-700 hover:underline">
+                            Open calendar
+                        </Link>
                     </div>
 
                     {upcomingSessions.length > 0 ? (
                         <div className="space-y-3">
                             {upcomingSessions.map((session) => (
-                                <div key={`${session.name}-${session.time}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <div key={`${session.name}-${session.time}`} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
                                     <div className="flex min-w-0 items-center gap-3">
                                         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary-100 text-[11px] font-semibold text-primary-700">
                                             {session.initials}
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="truncate text-sm font-semibold text-slate-900">{session.name}</p>
-                                            <p className="mt-0.5 text-sm text-slate-500">{session.skill}</p>
+                                            <p className="truncate text-sm font-semibold text-neutral-900">{session.name}</p>
+                                            <p className="mt-0.5 text-sm text-neutral-500">{session.skill}</p>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-3">
                                         <div className="text-right">
-                                            <p className="text-xs text-slate-500">{session.time}</p>
+                                            <p className="text-xs text-neutral-500">{session.time}</p>
                                             <span
                                                 className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.02em] ${
                                                     session.status === 'CONFIRMED'
@@ -524,315 +528,235 @@ export default function HomeFeed() {
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-10 text-center">
-                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
                                 <Calendar className="h-5 w-5" />
                             </div>
-                            <p className="text-lg font-semibold text-slate-900">No pending swap proposals yet</p>
-                            <p className="mt-1 max-w-md text-sm text-slate-500">
-                                Explore verified mentors who teach what you want to learn, and offer what you know in return.
+                            <p className="font-medium text-neutral-900">No sessions booked yet</p>
+                            <p className="mt-1 max-w-md text-sm text-neutral-500">
+                                Find someone who teaches what you want to learn and send a swap request. Booked sessions show up here.
                             </p>
-                            <button type="button" className="mt-4 rounded-md bg-[#0A66C2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004182]">
-                                Browse Marketplace →
-                            </button>
+                            <Link to="/marketplace" className="mt-4 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                                Find skills
+                            </Link>
                         </div>
                     )}
                 </div>
 
-                <div className="mt-6 space-y-6">
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
-                    >
-                        <div className="flex items-center space-x-2 flex-1">
-                            <Filter className="h-4 w-4 text-neutral-500" />
-                            <span className="text-sm font-medium text-neutral-700">Filter:</span>
-                            <div className="flex space-x-2">
-                                {(['all', 'offering', 'seeking'] as FilterType[]).map((f) => (
-                                    <button
-                                        key={f}
-                                        onClick={() => setFilter(f)}
-                                        className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${filter === f
-                                            ? 'bg-primary-700 text-white'
-                                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                                        }`}
-                                    >
-                                        {f.charAt(0).toUpperCase() + f.slice(1)}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <SortDesc className="h-4 w-4 text-neutral-500" />
-                            <select
-                                value={sort}
-                                onChange={(e) => setSort(e.target.value as SortType)}
-                                className="rounded-md border border-neutral-200 bg-neutral-100 px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-primary-500"
-                            >
-                                <option value="recent">Recent</option>
-                                <option value="popular">Popular</option>
-                                <option value="trending">Trending</option>
-                            </select>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="card p-5"
-                    >
-                        <div className="mb-4 flex items-center space-x-3">
-                            {userProfile?.profile?.avatarUrl ? (
-                                <img
-                                    src={userProfile.profile.avatarUrl}
-                                    alt={userProfile.name}
-                                    className="h-12 w-12 rounded-full object-cover"
-                                />
-                            ) : (
-                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-100 text-primary-700 font-semibold">
-                                    {userProfile ? getAvatarInitials(userProfile.name) : 'U'}
-                                </div>
-                            )}
-                            <button
-                                onClick={() => setShowCreatePost(!showCreatePost)}
-                                className="flex-1 rounded-md border border-neutral-300 bg-neutral-50 px-4 py-3 text-left text-neutral-500 transition-all hover:bg-white"
-                            >
-                                Share a skill swap...
+                <div className="mt-6 space-y-4">
+                    {/* ---------- New post ---------- */}
+                    <section className="rounded-lg border border-neutral-200 bg-white p-4" aria-label="Create a post">
+                        {!showCreatePost ? (
+                            <button onClick={() => setShowCreatePost(true)} className="flex w-full items-center gap-3 text-left">
+                                {userProfile?.profile?.avatarUrl ? (
+                                    <img src={userProfile.profile.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+                                ) : (
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                                        {userProfile ? getAvatarInitials(userProfile.name) : 'U'}
+                                    </span>
+                                )}
+                                <span className="flex-1 rounded-md border border-neutral-300 px-4 py-2.5 text-sm text-neutral-500 hover:bg-neutral-50">
+                                    Post what you can teach and what you'd like to learn…
+                                </span>
                             </button>
-                        </div>
-
-                        <AnimatePresence>
-                            {showCreatePost && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="space-y-3"
-                                >
-                                    <input
-                                        type="text"
-                                        placeholder="What skill can you offer?"
-                                        value={postContent.skillOffered}
-                                        onChange={(e) => setPostContent({ ...postContent, skillOffered: e.target.value })}
-                                        className="w-full rounded-xl border border-neutral-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-primary-500"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="What skill do you want to learn?"
-                                        value={postContent.skillWanted}
-                                        onChange={(e) => setPostContent({ ...postContent, skillWanted: e.target.value })}
-                                        className="w-full rounded-xl border border-neutral-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-primary-500"
-                                    />
+                        ) : (
+                            <form onSubmit={(e) => { e.preventDefault(); handleCreatePost(); }} className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm font-semibold text-neutral-900">New swap post</h2>
+                                    <button type="button" onClick={() => setShowCreatePost(false)} className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700" aria-label="Close">
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <label className="block">
+                                        <span className="mb-1 block text-sm font-medium text-neutral-700">I can teach</span>
+                                        <input
+                                            value={postContent.skillOffered}
+                                            onChange={(e) => setPostContent({ ...postContent, skillOffered: e.target.value })}
+                                            placeholder="e.g. React"
+                                            className="input py-2 text-sm"
+                                        />
+                                    </label>
+                                    <label className="block">
+                                        <span className="mb-1 block text-sm font-medium text-neutral-700">I want to learn</span>
+                                        <input
+                                            value={postContent.skillWanted}
+                                            onChange={(e) => setPostContent({ ...postContent, skillWanted: e.target.value })}
+                                            placeholder="e.g. UI design"
+                                            className="input py-2 text-sm"
+                                        />
+                                    </label>
+                                </div>
+                                <label className="block">
+                                    <span className="mb-1 block text-sm font-medium text-neutral-700">Details</span>
                                     <textarea
-                                        placeholder="Describe your swap proposal..."
+                                        rows={3}
                                         value={postContent.description}
                                         onChange={(e) => setPostContent({ ...postContent, description: e.target.value })}
-                                        rows={3}
-                                        className="w-full resize-none rounded-xl border border-neutral-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-primary-500"
+                                        placeholder="Your level, how often you can meet, anything a partner should know."
+                                        className="input resize-none py-2 text-sm"
                                     />
-                                    <div className="flex items-center justify-between pt-2">
-                                        <div className="flex space-x-2">
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept="image/*,video/*"
-                                                onChange={handleFileSelect}
-                                                className="hidden"
-                                            />
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-primary-50"
-                                                type="button"
-                                            >
-                                                <Image className="h-5 w-5" />
-                                            </motion.button>
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-primary-50"
-                                                type="button"
-                                            >
-                                                <Video className="h-5 w-5" />
-                                            </motion.button>
-                                            <motion.button whileHover={{ scale: 1.1 }} className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-primary-50" type="button">
-                                                <Calendar className="h-5 w-5" />
-                                            </motion.button>
-                                        </div>
-                                        <div className="flex items-center gap-1 rounded-full bg-neutral-100 p-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => setPostVisibility('PUBLIC')}
-                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-                                                    postVisibility === 'PUBLIC'
-                                                        ? 'bg-white shadow text-primary-700'
-                                                        : 'text-neutral-500 hover:text-neutral-700'
-                                                }`}
-                                            >
-                                                <Globe className="h-3.5 w-3.5" />
-                                                Public
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setPostVisibility('PRIVATE')}
-                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-                                                    postVisibility === 'PRIVATE'
-                                                        ? 'bg-white shadow text-rose-600'
-                                                        : 'text-neutral-500 hover:text-neutral-700'
-                                                }`}
-                                            >
-                                                <Lock className="h-3.5 w-3.5" />
-                                                Only Me
-                                            </button>
-                                        </div>
-                                        <motion.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={handleCreatePost}
-                                            className="rounded-md bg-primary-700 px-6 py-2 font-medium text-white transition-all hover:bg-primary-800"
-                                            type="button"
-                                        >
-                                            Post
-                                        </motion.button>
-                                    </div>
-                                    {filePreview && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            className="relative mt-3"
-                                        >
-                                            <button
-                                                onClick={handleRemoveFile}
-                                                className="absolute right-2 top-2 z-10 rounded-full bg-error-500 p-1 text-white hover:bg-error-600"
-                                                type="button"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                            {selectedFile?.type.startsWith('image/') ? (
-                                                <img src={filePreview} alt="Preview" className="max-h-64 w-full rounded-xl object-cover" />
-                                            ) : (
-                                                <video src={filePreview} className="max-h-64 w-full rounded-xl" controls />
-                                            )}
-                                        </motion.div>
-                                    )}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </motion.div>
+                                </label>
 
-                    <div className="space-y-6">
-                        {sortedPosts.map((post, index) => (
-                            <motion.div
-                                key={post.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                className="card overflow-hidden"
-                            >
-                                <div className="p-5">
-                                    <div className="mb-4 flex items-start space-x-3">
-                                        {post.userAvatar && post.userAvatar.startsWith('http') ? (
-                                            <img
-                                                src={post.userAvatar}
-                                                alt={post.userName}
-                                                className="h-12 w-12 rounded-full object-cover"
-                                            />
+                                {filePreview && (
+                                    <div className="relative">
+                                        <button onClick={handleRemoveFile} type="button" className="absolute right-2 top-2 z-10 rounded-full bg-white p-1 text-neutral-700 shadow hover:bg-neutral-100" aria-label="Remove attachment">
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                        {selectedFile?.type.startsWith('image/') ? (
+                                            <img src={filePreview} alt="Attachment preview" className="max-h-64 w-full rounded-md object-cover" />
                                         ) : (
-                                            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-100 text-primary-700 font-semibold">
-                                                {post.userAvatar || post.userName.charAt(0)}
-                                            </div>
+                                            <video src={filePreview} className="max-h-64 w-full rounded-md" controls />
                                         )}
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-neutral-900">{post.userName}</h3>
-                                            <p className="text-sm text-neutral-500">{post.timestamp}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                onClick={() => handleSave(post.id)}
-                                                className={`rounded-full p-2 transition-colors ${post.isSaved ? 'bg-warning-50 text-warning-500' : 'text-neutral-400 hover:bg-neutral-100'}`}
-                                            >
-                                                <Bookmark className={`h-5 w-5 ${post.isSaved ? 'fill-current' : ''}`} />
-                                            </motion.button>
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                onClick={() => {
-                                                    setSelectedPost(post);
-                                                    setReportData({ subject: '', description: '' });
-                                                    setShowReportModal(true);
-                                                }}
-                                                title="Report Post"
-                                                className="rounded-full p-2 text-neutral-400 transition-colors hover:bg-error-50 hover:text-error-500"
-                                            >
-                                                <AlertOctagon className="h-5 w-5" />
-                                            </motion.button>
-                                        </div>
                                     </div>
+                                )}
 
-                                    <div className="mb-4">
-                                        <div className="mb-3 flex flex-wrap gap-2">
-                                            <motion.span
-                                                whileHover={{ scale: 1.05 }}
-                                                className="rounded-md border border-success-200 bg-success-50 px-3 py-1 text-sm font-medium text-success-700"
-                                            >
-                                                Offering: {post.skillOffered}
-                                            </motion.span>
-                                            <motion.span
-                                                whileHover={{ scale: 1.05 }}
-                                                className="rounded-md border border-primary-200 bg-primary-50 px-3 py-1 text-sm font-medium text-primary-700"
-                                            >
-                                                Seeking: {post.skillWanted}
-                                            </motion.span>
-                                        </div>
-                                        <p className="leading-relaxed text-neutral-700">{post.description}</p>
-                                    </div>
-
-                                    <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => handleLike(post.id)}
-                                            className={`flex items-center space-x-2 rounded-xl px-4 py-2 transition-all ${post.isLiked ? 'bg-error-50 text-error-600' : 'text-neutral-600 hover:bg-neutral-50'}`}
-                                        >
-                                            <Heart className={`h-5 w-5 ${post.isLiked ? 'fill-current' : ''}`} />
-                                            <span className="text-sm font-medium">{post.likes}</span>
-                                        </motion.button>
-
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => handleCommentClick(post)}
-                                            className="flex items-center space-x-2 rounded-xl px-4 py-2 text-neutral-600 transition-all hover:bg-neutral-50"
-                                        >
-                                            <MessageCircle className="h-5 w-5" />
-                                            <span className="text-sm font-medium">{post.comments}</span>
-                                        </motion.button>
-
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => handleSwapClick(post)}
-                                            className="flex items-center space-x-2 rounded-xl bg-accent-50 px-4 py-2 text-accent-600 transition-all hover:bg-accent-100"
-                                        >
-                                            <RefreshCw className="h-5 w-5" />
-                                            <span className="text-sm font-medium">Swap</span>
-                                        </motion.button>
-
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            className="flex items-center space-x-2 rounded-xl px-4 py-2 text-neutral-600 transition-all hover:bg-neutral-50"
-                                        >
-                                            <Send className="h-5 w-5" />
-                                            <span className="text-sm font-medium">Share</span>
-                                        </motion.button>
-                                    </div>
+                                <div className="flex flex-wrap items-center gap-3 border-t border-neutral-100 pt-3">
+                                    <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
+                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100">
+                                        <Image className="h-4 w-4" /> Photo or video
+                                    </button>
+                                    <label className="inline-flex items-center gap-1.5 text-sm text-neutral-700">
+                                        Visible to
+                                        <select value={postVisibility} onChange={(e) => setPostVisibility(e.target.value as 'PUBLIC' | 'PRIVATE')} className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm">
+                                            <option value="PUBLIC">Everyone</option>
+                                            <option value="PRIVATE">Only me</option>
+                                        </select>
+                                    </label>
+                                    <button type="submit" className="ml-auto rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                                        Post
+                                    </button>
                                 </div>
-                            </motion.div>
-                        ))}
+                                <p className="text-xs text-neutral-500">Posts also appear in Find skills, where people can send you a swap request.</p>
+                            </form>
+                        )}
+                    </section>
+
+                    {/* ---------- Feed controls ---------- */}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5" role="group" aria-label="Show">
+                            {([['all', 'All posts'], ['matches', 'Good matches for me']] as const).map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    onClick={() => setFilter(value)}
+                                    aria-pressed={filter === value}
+                                    className={`rounded px-3 py-1.5 text-sm ${filter === value ? 'bg-neutral-900 font-medium text-white' : 'text-neutral-700 hover:bg-neutral-100'}`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                        <label className="inline-flex items-center gap-2 text-sm text-neutral-600">
+                            Sort by
+                            <select value={sort} onChange={(e) => setSort(e.target.value as SortType)} className="rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900">
+                                <option value="recent">Newest</option>
+                                <option value="popular">Most liked</option>
+                                <option value="trending">Most discussed</option>
+                            </select>
+                        </label>
                     </div>
+
+                    {/* ---------- Posts ---------- */}
+                    {sortedPosts.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center">
+                            <p className="font-medium text-neutral-900">
+                                {filter === 'matches' ? 'No posts match your skills yet' : 'No posts yet'}
+                            </p>
+                            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-600">
+                                {filter === 'matches'
+                                    ? (myTeachSkills.length ? 'Nobody is asking for what you teach right now. Check back later, or browse everything.' : 'Add skills to your profile so we can find people who want to learn them.')
+                                    : 'Be the first to post what you can teach and what you want to learn.'}
+                            </p>
+                            {filter === 'matches' && (
+                                <button onClick={() => setFilter('all')} className="mt-4 rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50">Show all posts</button>
+                            )}
+                        </div>
+                    ) : (
+                        sortedPosts.map((post) => {
+                            const isMine = Number(post.userId) === Number(user?.id);
+                            const saved = bookmarkedIds.has(Number(post.id));
+                            return (
+                                <article key={post.id} className="rounded-lg border border-neutral-200 bg-white">
+                                    <div className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            <Link to={isMine ? '/profile' : `/profile/${post.userId}`} className="shrink-0">
+                                                {post.userAvatar && post.userAvatar.startsWith('http') ? (
+                                                    <img src={post.userAvatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                                                ) : (
+                                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                                                        {getAvatarInitials(post.userName)}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                            <div className="min-w-0 flex-1">
+                                                <Link to={isMine ? '/profile' : `/profile/${post.userId}`} className="font-medium text-neutral-900 hover:underline">
+                                                    {isMine ? 'You' : post.userName}
+                                                </Link>
+                                                <p className="text-xs text-neutral-500">{post.timestamp}</p>
+                                            </div>
+                                            {!isMine && (
+                                                <div className="flex shrink-0 items-center">
+                                                    <button
+                                                        onClick={() => handleSave(post.id)}
+                                                        aria-pressed={saved}
+                                                        aria-label={saved ? 'Remove from saved' : 'Save post'}
+                                                        title={saved ? 'Saved' : 'Save'}
+                                                        className={`rounded p-1.5 hover:bg-neutral-100 ${saved ? 'text-primary-600' : 'text-neutral-400 hover:text-neutral-700'}`}
+                                                    >
+                                                        <Bookmark className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setSelectedPost(post); setReportData({ subject: '', description: '' }); setShowReportModal(true); }}
+                                                        aria-label="Report this post"
+                                                        title="Report"
+                                                        className="rounded p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-error-600"
+                                                    >
+                                                        <AlertOctagon className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                                            <div className="rounded-md bg-neutral-50 px-3 py-2">
+                                                <dt className="text-xs text-neutral-500">Teaches</dt>
+                                                <dd className="font-medium text-neutral-900">{post.skillOffered}</dd>
+                                            </div>
+                                            <div className="rounded-md bg-neutral-50 px-3 py-2">
+                                                <dt className="text-xs text-neutral-500">Wants to learn</dt>
+                                                <dd className="font-medium text-neutral-900">{post.skillWanted}</dd>
+                                            </div>
+                                        </dl>
+                                        {post.description && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-neutral-700">{post.description}</p>}
+                                        {post.mediaUrl && (
+                                            /\.(mp4|webm|mov)(\?|$)/i.test(post.mediaUrl)
+                                                ? <video src={post.mediaUrl} controls className="mt-3 max-h-96 w-full rounded-md bg-neutral-100" />
+                                                : <img src={post.mediaUrl} alt="" loading="lazy" className="mt-3 max-h-96 w-full rounded-md object-cover" />
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-1 border-t border-neutral-100 px-2 py-1.5">
+                                        <button
+                                            onClick={() => handleLike(post.id)}
+                                            aria-pressed={post.isLiked}
+                                            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm hover:bg-neutral-100 ${post.isLiked ? 'text-error-600' : 'text-neutral-600'}`}
+                                        >
+                                            <Heart className={`h-4 w-4 ${post.isLiked ? 'fill-current' : ''}`} />
+                                            {post.likes > 0 ? post.likes : ''} <span className="sr-only">likes</span>{post.likes === 0 && 'Like'}
+                                        </button>
+                                        <button onClick={() => handleCommentClick(post)} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100">
+                                            <MessageCircle className="h-4 w-4" />
+                                            {post.comments > 0 ? `${post.comments} comment${post.comments === 1 ? '' : 's'}` : 'Comment'}
+                                        </button>
+                                        {!isMine && (
+                                            <button onClick={() => handleSwapClick(post)} className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700">
+                                                <ArrowRightLeft className="h-4 w-4" /> Request swap
+                                            </button>
+                                        )}
+                                    </div>
+                                </article>
+                            );
+                        })
+                    )}
                 </div>
             </div>
         </div>

@@ -1,8 +1,9 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_BASE } from '../../config';
 
-const BASE_URL = 'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/notifications';
+const BASE_URL = `${API_BASE}/notifications`;
 
 export interface Notification {
     id: number;

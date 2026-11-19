@@ -27,7 +27,7 @@ export default function Network() {
         <div className="min-h-screen bg-neutral-50 pt-24 pb-12">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-neutral-900">My Network</h1>
+                    <h1 className="text-2xl font-semibold text-neutral-900">Network</h1>
                     <p className="text-neutral-600 mt-2">Manage your connections and pending requests</p>
                 </div>
 
@@ -71,7 +71,7 @@ export default function Network() {
                                                 className="w-12 h-12 rounded-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-bold text-lg">
+                                            <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-lg">
                                                 {req.sender?.name?.charAt(0) || 'U'}
                                             </div>
                                         )}

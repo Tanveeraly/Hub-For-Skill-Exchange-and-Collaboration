@@ -32,10 +32,10 @@ export default function Calendar() {
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-black text-neutral-900">Exchange Calendar</h1>
+                        <h1 className="text-2xl font-semibold text-neutral-900">Calendar</h1>
                         <p className="text-neutral-500">Track all your sessions and meetings in one place</p>
                     </div>
-                    <div className="flex items-center bg-white rounded-2xl p-2 shadow-sm border border-neutral-100">
+                    <div className="flex items-center bg-white rounded-xl p-2 shadow-sm border border-neutral-100">
                         <button onClick={prevMonth} className="p-2 hover:bg-neutral-50 rounded-xl"><ChevronLeft /></button>
                         <span className="px-6 font-bold text-neutral-700">
                             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
@@ -46,13 +46,13 @@ export default function Calendar() {
 
                 <div className="grid grid-cols-7 gap-4 mb-4">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                        <div key={day} className="text-center text-xs font-black text-neutral-400 uppercase tracking-widest">{day}</div>
+                        <div key={day} className="text-center text-xs font-bold text-neutral-400 uppercase tracking-widest">{day}</div>
                     ))}
                 </div>
 
                 <div className="grid grid-cols-7 gap-4">
                     {[...Array(firstDay)].map((_, i) => (
-                        <div key={`empty-${i}`} className="h-32 bg-neutral-100/50 rounded-3xl opacity-50" />
+                        <div key={`empty-${i}`} className="h-32 bg-neutral-100/50 rounded-xl opacity-50" />
                     ))}
                     {[...Array(monthDays)].map((_, i) => {
                         const day = i + 1;
@@ -60,8 +60,8 @@ export default function Calendar() {
                         const isToday = new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
 
                         return (
-                            <div key={day} className={`h-48 bg-white rounded-3xl p-4 shadow-sm border border-neutral-100 transition-all hover:shadow-md relative group ${isToday ? 'ring-2 ring-primary-600' : ''}`}>
-                                <span className={`text-lg font-black ${isToday ? 'text-primary-600' : 'text-neutral-300 group-hover:text-neutral-900'}`}>{day}</span>
+                            <div key={day} className={`h-48 bg-white rounded-xl p-4 shadow-sm border border-neutral-100 transition-all hover:shadow-md relative group ${isToday ? 'ring-2 ring-primary-600' : ''}`}>
+                                <span className={`text-lg font-bold ${isToday ? 'text-primary-600' : 'text-neutral-300 group-hover:text-neutral-900'}`}>{day}</span>
 
                                 <div className="mt-2 space-y-1 overflow-y-auto max-h-32">
                                     {swaps.map(swap => (

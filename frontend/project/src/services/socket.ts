@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
+import { API_ORIGIN } from '../config';
 
-const SOCKET_URL = 'https://hub-for-skill-exchange-and-collaboration.onrender.com';
+const SOCKET_URL = API_ORIGIN;
 
 export const socket = io(SOCKET_URL, {
     autoConnect: false,

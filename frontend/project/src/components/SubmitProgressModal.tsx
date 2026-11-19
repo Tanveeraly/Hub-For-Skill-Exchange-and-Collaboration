@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileText, CheckCircle, Upload } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE } from '../config';
+import { toast } from '../lib/toast';
 
 interface SubmitProgressModalProps {
     isOpen: boolean;
@@ -24,7 +26,7 @@ export default function SubmitProgressModal({ isOpen, onClose, onSubmit }: Submi
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, {
+            const response = await axios.post(`${API_BASE}/files/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true
             });
@@ -36,7 +38,7 @@ export default function SubmitProgressModal({ isOpen, onClose, onSubmit }: Submi
             }]);
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Failed to upload file");
+            toast.error('The file could not be uploaded. Please try again.');
         } finally {
             setIsUploading(false);
         }
@@ -60,7 +62,7 @@ export default function SubmitProgressModal({ isOpen, onClose, onSubmit }: Submi
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+                    className="bg-white rounded-xl w-full max-w-lg shadow-lg overflow-hidden"
                 >
                     <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                         <h3 className="text-xl font-bold text-neutral-900 flex items-center">
@@ -91,7 +93,7 @@ export default function SubmitProgressModal({ isOpen, onClose, onSubmit }: Submi
                                 <label className="block text-sm font-bold text-neutral-700">
                                     Completion Status
                                 </label>
-                                <span className="text-sm font-black text-primary-600 bg-primary-50 px-2 py-1 rounded-md">
+                                <span className="text-sm font-bold text-primary-600 bg-primary-50 px-2 py-1 rounded-md">
                                     {percentage}%
                                 </span>
                             </div>
@@ -156,7 +158,7 @@ export default function SubmitProgressModal({ isOpen, onClose, onSubmit }: Submi
                         <div className="pt-2">
                             <button
                                 type="submit"
-                                className="w-full py-4 bg-gradient-to-r from-primary-600 to-primary-600 text-white rounded-xl font-bold shadow-lg shadow-primary-200 hover:from-primary-700 hover:to-primary-700 transition-all flex items-center justify-center"
+                                className="w-full py-4 bg-primary-600 text-white rounded-xl font-bold shadow-lg hover:bg-primary-700 transition-all flex items-center justify-center"
                             >
                                 <CheckCircle className="w-5 h-5 mr-2" />
                                 Submit Report

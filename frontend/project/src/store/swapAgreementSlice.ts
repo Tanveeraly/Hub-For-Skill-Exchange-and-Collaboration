@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_BASE } from '../config';
 
 interface SwapAgreementState {
     hasAcceptedTerms: boolean;
@@ -22,7 +23,7 @@ export const fetchTermsAcceptance = createAsyncThunk(
     'swapAgreement/fetchTermsAcceptance',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/terms/check', {
+            const response = await axios.get(`${API_BASE}/terms/check`, {
                 withCredentials: true
             });
             return response.data;
@@ -38,7 +39,7 @@ export const acceptTerms = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await axios.post(
-                'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/terms/accept',
+                `${API_BASE}/terms/accept`,
                 {},
                 { withCredentials: true }
             );

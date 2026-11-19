@@ -560,10 +560,10 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className={`fixed inset-0 z-50 bg-gradient-to-br from-neutral-900 via-neutral-800 to-black ${isFullscreen ? '' : 'p-4 md:p-8'
+                className={`fixed inset-0 z-50 bg-neutral-900 ${isFullscreen ? '' : 'p-4 md:p-8'
                     }`}
             >
-                <div className={`relative w-full h-full ${isFullscreen ? '' : 'rounded-2xl overflow-hidden'}`}>
+                <div className={`relative w-full h-full ${isFullscreen ? '' : 'rounded-xl overflow-hidden'}`}>
                     {/* Remote Video (Full screen) */}
                     <div className="absolute inset-0 bg-neutral-900">
                         {callType === 'video' ? (
@@ -576,7 +576,7 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
                                 <div className="text-center">
-                                    <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center text-5xl font-bold text-white mb-4">
+                                    <div className="w-32 h-32 mx-auto rounded-full bg-primary-500 flex items-center justify-center text-5xl font-bold text-white mb-4">
                                         {remoteUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                                     </div>
                                     <h2 className="text-2xl font-semibold text-white">{remoteUser?.name || 'Unknown'}</h2>
@@ -593,7 +593,7 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                         <motion.div
                             drag
                             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                            className="absolute bottom-24 right-4 w-40 h-56 rounded-xl overflow-hidden shadow-2xl border-2 border-neutral-700"
+                            className="absolute bottom-24 right-4 w-40 h-56 rounded-xl overflow-hidden shadow-lg border-2 border-neutral-700"
                         >
                             <video
                                 ref={localVideoRef}
@@ -631,7 +631,7 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                         <motion.div
                             drag
                             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                            className="absolute bottom-24 left-4 w-64 h-48 rounded-xl overflow-hidden shadow-2xl border-2 border-primary-500 z-20"
+                            className="absolute bottom-24 left-4 w-64 h-48 rounded-xl overflow-hidden shadow-lg border-2 border-primary-500 z-20"
                         >
                             <video
                                 ref={screenVideoRef}
@@ -650,7 +650,7 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                     {/* Top Bar */}
                     <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent">
                         <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center text-white font-bold">
+                            <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
                                 {remoteUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                             </div>
                             <div>
@@ -677,7 +677,7 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
 
                     {/* Connection Status / Error */}
                     {error && (
-                        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-neutral-900/95 text-white px-6 py-4 rounded-xl shadow-2xl max-w-md border border-error-500/50">
+                        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-neutral-900/95 text-white px-6 py-4 rounded-xl shadow-lg max-w-md border border-error-500/50">
                             <div className="flex items-start space-x-3">
                                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-error-500/20 flex items-center justify-center">
                                     <PhoneOff className="w-5 h-5 text-error-400" />
@@ -714,7 +714,7 @@ export default function VideoCall({ offer, isIncoming = false }: VideoCallProps)
                                 <motion.div
                                     animate={{ scale: [1, 1.2, 1] }}
                                     transition={{ repeat: Infinity, duration: 1.5 }}
-                                    className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center text-5xl font-bold text-white mb-4"
+                                    className="w-32 h-32 mx-auto rounded-full bg-primary-500 flex items-center justify-center text-5xl font-bold text-white mb-4"
                                 >
                                     {remoteUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                                 </motion.div>

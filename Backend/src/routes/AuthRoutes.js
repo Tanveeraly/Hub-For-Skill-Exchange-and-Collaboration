@@ -426,7 +426,7 @@ router.get("/getUserPortfolios/:email",verifyjwt,getUserPortfolio);
 router.get("/getUserSkills/:email",verifyjwt,getUserSkills);
 router.post("/addMultipleUserSkills/:email",verifyjwt,addMultipleUserSkills);
 router.post("/createSkillListing/:email",verifyjwt,createSkillListingByEmail);
-router.get("/getAllUsersFullInfo",getAllUsersFullInfo);
+router.get("/getAllUsersFullInfo",verifyjwt,getAllUsersFullInfo);
 router.post("/forgot-password",forgotPassword);
 router.post("/forgot-passwordd",forgotPasswordd);   
 

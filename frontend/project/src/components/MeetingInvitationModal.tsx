@@ -60,10 +60,10 @@ export default function MeetingInvitationModal({
                     initial={{ scale: 0.9, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 20 }}
-                    className="bg-gradient-to-br from-white to-primary-50 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-primary-100"
+                    className="bg-white rounded-xl shadow-lg max-w-md w-full overflow-hidden border border-primary-100"
                 >
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-primary-600 to-primary-600 p-6 text-white relative overflow-hidden">
+                    <div className="bg-primary-600 p-6 text-white relative overflow-hidden">
                         <motion.div
                             animate={{
                                 scale: [1, 1.2, 1],
@@ -108,7 +108,7 @@ export default function MeetingInvitationModal({
                                 }}
                                 className="relative"
                             >
-                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl">
+                                <div className="w-24 h-24 rounded-full bg-primary-500 flex items-center justify-center text-white text-3xl font-bold shadow-xl">
                                     {senderAvatar ? (
                                         <img
                                             src={senderAvatar}
@@ -128,7 +128,7 @@ export default function MeetingInvitationModal({
                         </div>
 
                         {/* Caller Name */}
-                        <h2 className="text-2xl font-black text-neutral-900 text-center mb-2">
+                        <h2 className="text-2xl font-bold text-neutral-900 text-center mb-2">
                             {senderName}
                         </h2>
                         <p className="text-neutral-500 text-center text-sm mb-6">
@@ -137,7 +137,7 @@ export default function MeetingInvitationModal({
 
                         {/* Swap Details */}
                         {swapDetails && (
-                            <div className="bg-white rounded-2xl p-4 mb-6 border border-neutral-100 shadow-sm">
+                            <div className="bg-white rounded-xl p-4 mb-6 border border-neutral-100 shadow-sm">
                                 <div className="flex items-center justify-center space-x-2 text-sm mb-2">
                                     <RefreshCw className="w-4 h-4 text-primary-600" />
                                     <span className="font-bold text-neutral-900">Swap Session</span>
@@ -175,7 +175,7 @@ export default function MeetingInvitationModal({
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onReject}
-                                className="flex-1 py-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-2xl font-bold transition-colors flex items-center justify-center space-x-2"
+                                className="flex-1 py-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl font-bold transition-colors flex items-center justify-center space-x-2"
                             >
                                 <Phone className="w-5 h-5 rotate-[135deg]" />
                                 <span>Decline</span>
@@ -184,7 +184,7 @@ export default function MeetingInvitationModal({
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onAccept}
-                                className="flex-1 py-4 bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-success-200 flex items-center justify-center space-x-2"
+                                className="flex-1 py-4 bg-success-500 hover:bg-success-600 text-white rounded-xl font-bold transition-all shadow-lg flex items-center justify-center space-x-2"
                             >
                                 <Video className="w-5 h-5" />
                                 <span>Join Meeting</span>

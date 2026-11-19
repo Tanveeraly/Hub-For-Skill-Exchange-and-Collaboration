@@ -1,13 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import Landing from "./pages/Landing.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import ForgotPassword from "./pages/ForgotPassword.tsx";
 import Profile from "./pages/Profile.tsx";
 import Marketplace from "./pages/Marketplace.tsx";
-import Dashboard from "./pages/Dashboard.tsx";
-import GoogleLoginPage from "./pages/test.tsx";
-import ForgotPass from "./pages/forgetpass.tsx";
 import SwapScheduling from "./pages/SwapScheduling.tsx";
 import HomeFeed from "./pages/HomeFeed.tsx";
 import Notifications from "./pages/Notifications.tsx";
@@ -22,20 +19,21 @@ import AnalyticsDashboard from "./pages/AnalyticsDashboard.tsx";
 import Network from "./pages/Network.tsx";
 import CareerBooster from "./pages/CareerBooster.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
-import AdminPortal from "./pages/AdminPortal.tsx";
 import SecurityDashboard from "./pages/SecurityDashboard.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminUsers from "./pages/admin/AdminUsers.tsx";
 import AdminDisputes from "./pages/admin/AdminDisputes.tsx";
-import AdminAuditLogs from "./pages/admin/AdminAuditLogs.tsx";
 import AdminComplaints from "./pages/admin/AdminComplaints.tsx";
 import AdminPortfolios from "./pages/admin/AdminPortfolios.tsx";
 import AdminCertifications from "./pages/admin/AdminCertifications.tsx";
 import AdminCourses from "./pages/admin/AdminCourses.tsx";
 import Footer from "./components/Footer.tsx";
+import NotFound from "./pages/NotFound.tsx";
+import PublicProfile from "./pages/PublicProfile.tsx";
 import AppShell from "./components/layout/AppShell.tsx";
 import AdminShell from "./components/layout/AdminShell.tsx";
 import { useEffect } from "react";
+import { MotionConfig } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "./store/store.ts";
 import { setUser, logout as logoutAction } from "./store/slices/authSlice.ts";
@@ -57,6 +55,17 @@ import {
 } from "./store/slices/callSlice.ts";
 import { socket } from "./services/socket.ts";
 import axios from "axios";
+import { API_BASE } from './config';
+import { toast, Toaster } from './lib/toast';
+
+// /profile/:userId shows your editable profile for your own id, and a read-only view for anyone else.
+const ProfileByIdRoute: React.FC = () => {
+  const { userId } = useParams();
+  const me = useSelector((state: RootState) => state.auth.user);
+  const id = Number(userId);
+  if (!Number.isFinite(id)) return <Navigate to="/profile" replace />;
+  return Number(me?.id) === id ? <Profile /> : <PublicProfile userId={id} />;
+};
 
 const AppContent: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -67,7 +76,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await axios.get("https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/getme", {
+        const res = await axios.get(`${API_BASE}/auth/getme`, {
           withCredentials: true,
         });
         if (res.data.success) {
@@ -204,7 +213,7 @@ const AppContent: React.FC = () => {
     socket.on("meeting-invite-rejected", ({ reason }: { reason?: string }) => {
       console.log("❌ Meeting invitation rejected:", reason);
       dispatch(rejectMeetingInvite());
-      alert(`Meeting invitation declined: ${reason || 'User declined'}`);
+      toast.info(`Your meeting invitation was declined${reason ? `: ${reason}` : '.'}`);
     });
 
     return () => {
@@ -228,11 +237,12 @@ const AppContent: React.FC = () => {
   }, [dispatch, isAuthenticated, user, remoteUser, callType]);
 
   const location = useLocation();
-  const publicPaths = new Set(['/','/login','/signup','/forgot-password','/test','/forgetpassword']);
+  const publicPaths = new Set(['/']);
   const showFooter = publicPaths.has(location.pathname);
 
   return (
     <div className="min-h-screen bg-neutral-50">
+      <Toaster />
       <IncomingCallModal />
       <MeetingInvitationModal
         isOpen={!!meetingInvitation}
@@ -286,14 +296,14 @@ const AppContent: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/test" element={<GoogleLoginPage />} />
-        <Route path="/forgetpassword" element={<ForgotPass />} />
+        <Route path="/test" element={<Navigate to="/login" replace />} />
+        <Route path="/forgetpassword" element={<Navigate to="/forgot-password" replace />} />
 
         <Route path="/home" element={<ProtectedRoute><AppShell><HomeFeed /></AppShell></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><AppShell><Dashboard /></AppShell></ProtectedRoute>} />
+        <Route path="/dashboard" element={<Navigate to="/home" replace />} />
         <Route path="/analytics" element={<ProtectedRoute><AppShell><AnalyticsDashboard /></AppShell></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
-        <Route path="/profile/:userId" element={<ProtectedRoute><AppShell><Profile /></AppShell></ProtectedRoute>} />
+        <Route path="/profile/:userId" element={<ProtectedRoute><AppShell><ProfileByIdRoute /></AppShell></ProtectedRoute>} />
         <Route path="/marketplace" element={<AppShell><Marketplace /></AppShell>} />
         <Route path="/swaps" element={<ProtectedRoute><AppShell><SwapScheduling /></AppShell></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><AppShell><Notifications /></AppShell></ProtectedRoute>} />
@@ -302,16 +312,18 @@ const AppContent: React.FC = () => {
         <Route path="/calendar" element={<ProtectedRoute><AppShell><Calendar /></AppShell></ProtectedRoute>} />
         <Route path="/career" element={<ProtectedRoute><AppShell><CareerBooster /></AppShell></ProtectedRoute>} />
 
-        <Route path="/admin-portal" element={<AdminRoute><AdminShell><AdminPortal /></AdminShell></AdminRoute>} />
+        <Route path="/admin-portal" element={<Navigate to="/admin" replace />} />
         <Route path="/admin" element={<AdminRoute><AdminShell><AdminDashboard /></AdminShell></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><AdminShell><AdminUsers /></AdminShell></AdminRoute>} />
         <Route path="/admin/disputes" element={<AdminRoute><AdminShell><AdminDisputes /></AdminShell></AdminRoute>} />
-        <Route path="/admin/audit-logs" element={<AdminRoute><AdminShell><AdminAuditLogs /></AdminShell></AdminRoute>} />
-        <Route path="/admin/analytics" element={<AdminRoute><AdminShell><AdminDashboard /></AdminShell></AdminRoute>} />
+        <Route path="/admin/audit-logs" element={<Navigate to="/admin/security" replace />} />
+        <Route path="/admin/jobs" element={<AdminRoute><AdminShell><AdminPanel initialTab="jobs" /></AdminShell></AdminRoute>} />
+        <Route path="/admin/analytics" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/portfolios" element={<AdminRoute><AdminShell><AdminPortfolios /></AdminShell></AdminRoute>} />
         <Route path="/admin/certifications" element={<AdminRoute><AdminShell><AdminCertifications /></AdminShell></AdminRoute>} />
         <Route path="/admin/complaints" element={<AdminRoute><AdminShell><AdminComplaints /></AdminShell></AdminRoute>} />
         <Route path="/admin/courses" element={<AdminRoute><AdminShell><AdminCourses /></AdminShell></AdminRoute>} />
+        <Route path="*" element={<NotFound />} />
         <Route path="/admin/security" element={<AdminRoute><AdminShell><SecurityDashboard /></AdminShell></AdminRoute>} />
       </Routes>
       {showFooter && <Footer />}
@@ -319,10 +331,13 @@ const AppContent: React.FC = () => {
   );
 };
 
+// Fades only: no sliding, scaling or hover bounces anywhere in the app.
 const App: React.FC = () => (
-  <Router>
-    <AppContent />
-  </Router>
+  <MotionConfig reducedMotion="always">
+    <Router>
+      <AppContent />
+    </Router>
+  </MotionConfig>
 );
 
 export default App;

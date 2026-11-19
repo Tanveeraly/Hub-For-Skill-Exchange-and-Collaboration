@@ -1,224 +1,141 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
-import Alert from '../components/Alert';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../store/slices/authSlice';
-import GoogleAuthButton from '../lib/Scoialogin.tsx'
-
-interface FormData {
-  email: string;
-  password: string;
-}
+import GoogleAuthButton from '../lib/Scoialogin.tsx';
+import AuthLayout from '../components/layout/AuthLayout';
+import VerifyCodeForm from '../components/VerifyCodeForm';
+import { Button, Input } from '../components/ui';
+import { API_BASE } from '../config';
+import { toast } from '../lib/toast';
 
 export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefillEmail = (location.state as { email?: string } | null)?.email ?? '';
+
+  const [formData, setFormData] = useState({ email: prefillEmail, password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [otpModal, setOtpModal] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [success, setSuccess] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.email || !formData.password) {
+      setError('Enter your email and password.');
+      return;
+    }
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
-      const res = await axios.post(
-        'https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/login',
-        formData,
-        { withCredentials: true }
-      );
+      const res = await axios.post(`${API_BASE}/auth/login`, formData, { withCredentials: true });
 
-      // If OTP is required
       if (res.data.message?.includes('verify your email')) {
-        setLoading(false);
-        setOtpModal(true); // show modal immediately
-        setSuccess(res.data.message);
+        setNeedsVerification(true);
         return;
       }
 
-      // If login success
       if (res.data.success) {
-        setSuccess('Login successful!');
         const user = res.data.data || res.data.user;
         const accessToken = res.data.data?.accessToken || res.data.accessToken || res.data.token;
-        if (accessToken) {
-          localStorage.setItem('accessToken', accessToken);
-        }
-        if (res.data.data?.refreshToken || res.data.refreshToken) {
-          localStorage.setItem('refreshToken', res.data.data?.refreshToken || res.data.refreshToken);
-        }
+        const refreshToken = res.data.data?.refreshToken || res.data.refreshToken;
+        if (accessToken) localStorage.setItem('accessToken', accessToken);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         dispatch(setUser(user));
-        
-        setTimeout(() => {
-          if (user.role === 'ADMIN') {
-            navigate('/admin-portal');
-          } else {
-            navigate('/home');
-          }
-        }, 1000); // redirect after 1s
+        navigate(user.role === 'ADMIN' ? '/admin' : '/home');
       } else {
-        console.log('Login response message not Success:', res.data.message);
+        setError(res.data.message || 'We could not sign you in. Please try again.');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || 'The email or password is not correct.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOtpVerify = async () => {
-    try {
-      const res = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/auth/verify-otp', {
-        email: formData.email,
-        otp,
-      });
-
-      if (res.data.message === 'User verified successfully') {
-        setSuccess(res.data.message);
-        setOtpModal(false);
-
-        setTimeout(() => navigate('/login'), 2000);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'OTP verification failed');
-    }
-  };
-
-
+  if (needsVerification) {
+    return (
+      <AuthLayout title="Verify your email first" subtitle="You need to confirm your email before you can sign in.">
+        <VerifyCodeForm
+          email={formData.email}
+          onBack={() => setNeedsVerification(false)}
+          onVerified={() => {
+            setNeedsVerification(false);
+            toast.success('Email verified. You can sign in now.');
+          }}
+        />
+      </AuthLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-primary flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <div className="card card-hover p-8 relative">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4">
-              <img
-                src="/hsec-logo.png"
-                alt="HSEC"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <h2 className="text-3xl font-bold text-neutral-900">Welcome Back</h2>
-            <p className="text-neutral-600 mt-2">Sign in to continue to HSEC</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="input pl-10"
-                  placeholder="you@example.com"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="input pl-10 pr-12"
-                  placeholder="••••••••"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
-                <input type="checkbox" className="w-4 h-4 text-primary-600 border-neutral-300 rounded focus:ring-primary-500" />
-                <span className="ml-2 text-sm text-neutral-600">Remember me</span>
-              </label>
-              <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">Forgot password?</Link>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-3"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-
-            {success && <Alert type="Success" message={success} />}
-            {error && <Alert type="error" message={error} />}
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-300"></div></div>
-              <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-neutral-500">Or continue with</span></div>
-            </div>
-            <div className="mt-6 grid grid-cols-3 gap-3">
-
-              <GoogleAuthButton setSuccess={setSuccess} setError={setError} />
-
-
-            </div>
-          </div>
-
-          <p className="mt-8 text-center text-sm text-neutral-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-semibold text-primary-600 hover:text-primary-700">
-              Sign up
-            </Link>
-          </p>
-        </div>
+    <AuthLayout
+      title="Sign in"
+      subtitle="Welcome back to HubForSkills."
+      asideTitle="After you sign in"
+      asideSteps={[
+        'Home shows anything waiting for your reply.',
+        'My swaps lists your requests, sessions in progress and finished swaps.',
+        'Find skills is where you search for your next partner.',
+      ]}
+      footer={<>New here? <Link to="/signup" className="font-medium text-primary-700 hover:underline">Create a free account</Link></>}
+    >
+      <div className="flex justify-center">
+        <GoogleAuthButton setSuccess={() => {}} setError={setError} />
       </div>
 
-      {/* OTP Modal */}
-      {otpModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-80 text-center">
-            <h3 className="text-xl font-semibold mb-3 text-neutral-800">Verify Your OTP</h3>
-            <p className="text-sm text-neutral-600 mb-4">
-              We’ve sent a 6-digit OTP to your email <br />
-              <span className="font-semibold text-primary-600">{formData.email}</span>
-            </p>
+      <div className="my-6 flex items-center gap-3 text-xs text-neutral-500">
+        <span className="h-px flex-1 bg-neutral-200" />
+        or sign in with email
+        <span className="h-px flex-1 bg-neutral-200" />
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <Input label="Email" name="email" type="email" autoComplete="email" value={formData.email} onChange={handleChange} autoFocus={!prefillEmail} />
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label htmlFor="password" className="text-sm font-medium text-neutral-700">Password</label>
+            <Link to="/forgot-password" className="text-sm text-primary-700 hover:underline">Forgot password?</Link>
+          </div>
+          <div className="relative">
             <input
-              type="text"
-              placeholder="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full border px-3 py-2 rounded-lg mb-4 focus:ring-2 focus:ring-primary-500"
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={formData.password}
+              onChange={handleChange}
+              autoFocus={!!prefillEmail}
+              className="input pr-11"
             />
-            <button type="button" onClick={handleOtpVerify} className="w-full bg-gradient-to-r from-primary-600 to-secondary-500 text-white py-2 rounded-lg font-medium hover:shadow-lg transition-all">
-              Verify OTP
-            </button>
-            <button type="button" onClick={() => setOtpModal(false)} className="mt-3 text-sm text-neutral-500 hover:text-neutral-700 transition">
-              Cancel
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-neutral-500 hover:text-neutral-800"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
-      )}
-    </div>
+
+        {error && <p role="alert" className="rounded-md border border-error-200 bg-error-50 px-3 py-2 text-sm text-error-700">{error}</p>}
+
+        <Button type="submit" loading={loading} className="w-full py-2.5">
+          Sign in
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }

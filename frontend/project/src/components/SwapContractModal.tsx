@@ -98,7 +98,7 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                             initial={{ opacity: 0, scale: 0.95, y: 15 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                            className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                            className="bg-white rounded-xl w-full max-w-2xl shadow-lg overflow-hidden flex flex-col max-h-[90vh]"
                         >
                             {/* Header */}
                             <div className="px-6 py-5 border-b border-neutral-100 bg-white">
@@ -121,14 +121,14 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                             {/* Scrollable Body */}
                             <div className="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar text-neutral-800 text-sm">
                                 {error && (
-                                    <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl font-medium">
+                                    <div className="p-3.5 bg-error-50 border border-error-200 text-error-700 rounded-xl font-medium">
                                         {error}
                                     </div>
                                 )}
 
                                 {/* Parties Section */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-100 flex items-center gap-3">
+                                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center font-bold text-primary-700">
                                             {currentUser?.profile?.avatarUrl ? (
                                                 <img src={currentUser.profile.avatarUrl} className="w-full h-full object-cover rounded-xl" />
@@ -143,8 +143,8 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                         </div>
                                     </div>
 
-                                    <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-100 flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center font-bold text-indigo-700">
+                                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center font-bold text-primary-700">
                                             {partner?.profile?.avatarUrl ? (
                                                 <img src={partner.profile.avatarUrl} className="w-full h-full object-cover rounded-xl" />
                                             ) : (
@@ -160,7 +160,7 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                 </div>
 
                                 {/* Swap Details Card */}
-                                <div className="border border-neutral-100 rounded-2xl p-4 space-y-3">
+                                <div className="border border-neutral-100 rounded-xl p-4 space-y-3">
                                     <h4 className="font-bold text-neutral-900 flex items-center gap-2">
                                         <Calendar className="w-4 h-4 text-primary-500" />
                                         Contract Terms & Execution Schedule
@@ -179,30 +179,30 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                         <div>
                                             <span className="text-neutral-400 font-semibold block">ROOM TYPE</span>
                                             <span className="font-bold text-neutral-800 flex items-center gap-1">
-                                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Secure Video Call
+                                                <ShieldCheck className="w-3.5 h-3.5 text-success-500" /> Secure Video Call
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Cancellation & Exit Terms */}
-                                <div className="bg-amber-50/50 border border-amber-200/60 rounded-2xl p-5 space-y-4">
+                                <div className="bg-warning-50/50 border border-warning-200/60 rounded-xl p-5 space-y-4">
                                     <div className="flex items-start gap-3">
-                                        <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                                        <AlertTriangle className="w-5 h-5 text-warning-600 mt-0.5 flex-shrink-0" />
                                         <div className="space-y-1">
-                                            <h4 className="font-bold text-amber-950">Cancellation & Exit Policy</h4>
-                                            <p className="text-xs text-amber-800 leading-relaxed">
+                                            <h4 className="font-bold text-warning-900">Cancellation & Exit Policy</h4>
+                                            <p className="text-xs text-warning-800 leading-relaxed">
                                                 Swaps may be cancelled prior to the cancellation deadline. If you cancel, you must provide a constructive reason. Once the deadline passes or the session starts, the contract is locked. If your partner does not perform, please raise a dispute instead of cancelling.
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="border-t border-amber-200/50 pt-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                                    <div className="border-t border-warning-200/50 pt-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                                         <div>
                                             <span className="text-neutral-500 font-semibold uppercase">CANCELLATION DEADLINE</span>
                                             <p className="font-bold text-neutral-900 mt-0.5">
                                                 {swap.cancellationDeadline ? (
-                                                    <span className={deadlinePassed ? "text-red-600" : "text-emerald-700"}>
+                                                    <span className={deadlinePassed ? "text-error-600" : "text-success-700"}>
                                                         {new Date(swap.cancellationDeadline).toLocaleString()}
                                                         {deadlinePassed ? " (Passed - Locked)" : " (Active)"}
                                                     </span>
@@ -225,7 +225,7 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                             {canCancel && (
                                                 <button
                                                     onClick={() => setShowCancelForm(!showCancelForm)}
-                                                    className="px-3 py-1.5 bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition-colors text-xs"
+                                                    className="px-3 py-1.5 bg-error-50 text-error-600 font-semibold rounded-lg hover:bg-error-100 transition-colors text-xs"
                                                 >
                                                     Cancel Swap Request
                                                 </button>
@@ -248,7 +248,7 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                                 <button
                                                     type="submit"
                                                     disabled={loading}
-                                                    className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                                                    className="px-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs font-semibold transition-colors"
                                                 >
                                                     Save
                                                 </button>
@@ -266,7 +266,7 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                                 placeholder="Explain why you need to exit this swap agreement..."
                                                 value={cancelReason}
                                                 onChange={(e) => setCancelReason(e.target.value)}
-                                                className="w-full p-2 border border-neutral-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-red-500 resize-none"
+                                                className="w-full p-2 border border-neutral-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-error-500 resize-none"
                                             ></textarea>
                                             <div className="flex justify-end gap-2">
                                                 <button
@@ -279,7 +279,7 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                                 <button
                                                     type="submit"
                                                     disabled={loading || !cancelReason.trim()}
-                                                    className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                                                    className="px-4 py-1.5 bg-error-600 hover:bg-error-700 text-white rounded-lg text-xs font-semibold transition-colors"
                                                 >
                                                     Confirm Cancellation
                                                 </button>
@@ -289,10 +289,10 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                 </div>
 
                                 {/* Escrow Mutual Confirmation System */}
-                                <div className="border border-neutral-100 rounded-2xl p-5 space-y-4">
+                                <div className="border border-neutral-100 rounded-xl p-5 space-y-4">
                                     <h4 className="font-bold text-neutral-900 flex items-center gap-2">
-                                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                                        Mutual Confirmation & Escrow Verification
+                                        <CheckCircle2 className="w-5 h-5 text-success-600" />
+                                        Both sides confirm the swap is complete
                                     </h4>
                                     <p className="text-xs text-neutral-500 leading-relaxed">
                                         To ensure transparency and completion, both parties must confirm that the session was completed successfully. Your swap credits and certifications are updated once mutual agreement is recorded.
@@ -301,16 +301,16 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                     <div className="flex items-center justify-between bg-neutral-50 p-4 rounded-xl border border-neutral-100">
                                         <div className="space-y-2 text-xs">
                                             <div className="flex items-center gap-2">
-                                                <span className={`w-2.5 h-2.5 rounded-full ${userConfirmed ? 'bg-emerald-500' : 'bg-neutral-300'}`}></span>
+                                                <span className={`w-2.5 h-2.5 rounded-full ${userConfirmed ? 'bg-success-500' : 'bg-neutral-300'}`}></span>
                                                 <span className="font-medium text-neutral-600">Your Confirmation Status:</span>
-                                                <strong className={userConfirmed ? "text-emerald-700" : "text-neutral-500"}>
+                                                <strong className={userConfirmed ? "text-success-700" : "text-neutral-500"}>
                                                     {userConfirmed ? 'Confirmed' : 'Pending'}
                                                 </strong>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className={`w-2.5 h-2.5 rounded-full ${partnerConfirmed ? 'bg-emerald-500' : 'bg-neutral-300'}`}></span>
+                                                <span className={`w-2.5 h-2.5 rounded-full ${partnerConfirmed ? 'bg-success-500' : 'bg-neutral-300'}`}></span>
                                                 <span className="font-medium text-neutral-600">Partner Confirmation Status:</span>
-                                                <strong className={partnerConfirmed ? "text-emerald-700" : "text-neutral-500"}>
+                                                <strong className={partnerConfirmed ? "text-success-700" : "text-neutral-500"}>
                                                     {partnerConfirmed ? 'Confirmed' : 'Pending'}
                                                 </strong>
                                             </div>
@@ -320,7 +320,7 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                             <button
                                                 onClick={handleEscrowConfirm}
                                                 disabled={loading}
-                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-all text-xs flex items-center gap-1.5"
+                                                className="px-4 py-2 bg-success-600 hover:bg-success-700 text-white rounded-xl font-semibold transition-all text-xs flex items-center gap-1.5"
                                             >
                                                 Confirm Completion
                                             </button>
@@ -328,26 +328,26 @@ export default function SwapContractModal({ isOpen, onClose, swap, currentUser, 
                                     </div>
 
                                     {userConfirmed && partnerConfirmed && (
-                                        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold text-center">
-                                            ✓ Mutual Confirmation Complete! Escrow Verification Released.
+                                        <div className="p-3 bg-success-50 border border-success-200 text-success-800 rounded-xl text-xs font-bold text-center">
+                                            Both of you confirmed. This swap is complete.
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Dispute Trigger Section */}
-                                <div className="border border-red-100 bg-red-50/20 rounded-2xl p-5 flex items-start justify-between gap-4">
+                                <div className="border border-error-100 bg-error-50/20 rounded-xl p-5 flex items-start justify-between gap-4">
                                     <div className="space-y-1">
-                                        <h4 className="font-bold text-red-950 flex items-center gap-1.5">
-                                            <XOctagon className="w-4.5 h-4.5 text-red-600" />
+                                        <h4 className="font-bold text-error-900 flex items-center gap-1.5">
+                                            <XOctagon className="w-4.5 h-4.5 text-error-600" />
                                             Dispute Reporting System
                                         </h4>
-                                        <p className="text-xs text-red-800/80 leading-relaxed">
+                                        <p className="text-xs text-error-800/80 leading-relaxed">
                                             Is there an active disagreement, a no-show, or poor behavior during the session? File a formal dispute. Our admins will investigate and escalate if needed.
                                         </p>
                                     </div>
                                     <button
                                         onClick={() => setIsDisputeOpen(true)}
-                                        className="px-4 py-2 border border-red-200 text-red-600 font-semibold rounded-xl text-xs hover:bg-red-50 transition-colors flex-shrink-0"
+                                        className="px-4 py-2 border border-error-200 text-error-600 font-semibold rounded-xl text-xs hover:bg-error-50 transition-colors flex-shrink-0"
                                     >
                                         File Dispute
                                     </button>

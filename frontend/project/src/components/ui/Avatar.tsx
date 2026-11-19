@@ -29,7 +29,7 @@ export default function Avatar({ src, alt = 'Avatar', name = 'U', size = 'md', o
       <div className={`flex items-center justify-center overflow-hidden rounded-full border border-white bg-primary-100 font-semibold text-primary-700 ${sizeClasses[size]}`}>
         {src ? <img src={src} alt={alt} className="h-full w-full object-cover" /> : initials}
       </div>
-      {online && <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500" />}
+      {online && <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-success-500" />}
       {verified && (
         <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-primary-600 text-[8px] text-white">
           ✓

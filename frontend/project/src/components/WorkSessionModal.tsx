@@ -28,7 +28,7 @@ export default function WorkSessionModal({ isOpen, onClose, onStart }: WorkSessi
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
                     >
                         <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-neutral-900 flex items-center">
@@ -52,7 +52,7 @@ export default function WorkSessionModal({ isOpen, onClose, onStart }: WorkSessi
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder="What do you plan to achieve in this session?"
-                                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all resize-none h-32"
+                                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all resize-none h-32"
                                     required
                                 />
                             </div>
@@ -67,7 +67,7 @@ export default function WorkSessionModal({ isOpen, onClose, onStart }: WorkSessi
                             <div className="pt-2">
                                 <button
                                     type="submit"
-                                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-200 transition-all flex items-center justify-center transform active:scale-95"
+                                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center transform active:scale-95"
                                 >
                                     <Play className="w-4 h-4 mr-2" />
                                     Start Timer

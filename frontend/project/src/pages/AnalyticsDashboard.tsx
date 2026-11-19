@@ -5,6 +5,7 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LineChart, Line, AreaChart, Area } from 'recharts';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { API_BASE } from '../config';
 
 interface AnalyticsData {
     totalSwaps: number;
@@ -46,8 +47,8 @@ export default function AnalyticsDashboard() {
         try {
             const config = { withCredentials: true, timeout: 5000 };
             const [statsRes, trendsRes] = await Promise.allSettled([
-                axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/analytics/user-stats', config),
-                axios.get('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/analytics/trends', config)
+                axios.get(`${API_BASE}/analytics/user-stats`, config),
+                axios.get(`${API_BASE}/analytics/trends`, config)
             ]);
 
             let data: AnalyticsData;
@@ -131,9 +132,9 @@ export default function AnalyticsDashboard() {
             case 'projects':
                 return (<div className="space-y-4"><div className="flex justify-between p-3 bg-primary-50 rounded-lg"><span className="font-medium">Running</span><span className="text-2xl font-bold text-primary-600">{analytics.runningProjects}</span></div><div className="flex justify-between p-3 bg-accent-50 rounded-lg"><span className="font-medium">Avg Progress</span><span className="text-2xl font-bold text-accent-600">{analytics.overallProgress}%</span></div></div>);
             case 'sessions':
-                return (<div className="space-y-4"><div className="flex justify-between p-3 bg-orange-50 rounded-lg"><span className="font-medium">Total Sessions</span><span className="text-2xl font-bold text-orange-600">{analytics.totalSessions}</span></div><div className="flex justify-between p-3 bg-amber-50 rounded-lg"><span className="font-medium">Total Hours</span><span className="text-2xl font-bold text-amber-600">{analytics.totalHours}h</span></div></div>);
+                return (<div className="space-y-4"><div className="flex justify-between p-3 bg-warning-50 rounded-lg"><span className="font-medium">Total Sessions</span><span className="text-2xl font-bold text-warning-600">{analytics.totalSessions}</span></div><div className="flex justify-between p-3 bg-warning-50 rounded-lg"><span className="font-medium">Total Hours</span><span className="text-2xl font-bold text-warning-600">{analytics.totalHours}h</span></div></div>);
             case 'progress':
-                return (<div className="space-y-4"><div className="flex justify-between p-3 bg-success-50 rounded-lg"><span className="font-medium">Overall Progress</span><span className="text-2xl font-bold text-success-600">{analytics.overallProgress}%</span></div><div className="w-full bg-neutral-200 rounded-full h-4"><div className="bg-gradient-to-r from-success-500 to-success-500 h-4 rounded-full" style={{ width: `${analytics.overallProgress}%` }}></div></div></div>);
+                return (<div className="space-y-4"><div className="flex justify-between p-3 bg-success-50 rounded-lg"><span className="font-medium">Overall Progress</span><span className="text-2xl font-bold text-success-600">{analytics.overallProgress}%</span></div><div className="w-full bg-neutral-200 rounded-full h-4"><div className="bg-success-500 h-4 rounded-full" style={{ width: `${analytics.overallProgress}%` }}></div></div></div>);
             case 'hours':
                 return (<div className="space-y-4"><div className="flex justify-between p-3 bg-accent-50 rounded-lg"><span className="font-medium">Total Hours</span><span className="text-2xl font-bold text-accent-600">{analytics.totalHours}h</span></div></div>);
             case 'rating':
@@ -190,9 +191,9 @@ export default function AnalyticsDashboard() {
                         <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center"><Lightbulb className="w-5 h-5 mr-2 text-warning-500" />Personalized Recommendations</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {recommendations.map((rec, idx) => (
-                                <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} className={`p-4 rounded-xl border ${rec.type === 'warning' ? 'bg-orange-50 border-orange-100' : rec.type === 'success' ? 'bg-success-50 border-success-100' : 'bg-primary-50 border-primary-100'}`}>
+                                <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} className={`p-4 rounded-xl border ${rec.type === 'warning' ? 'bg-warning-50 border-warning-100' : rec.type === 'success' ? 'bg-success-50 border-success-100' : 'bg-primary-50 border-primary-100'}`}>
                                     <div className="flex items-start">
-                                        <rec.icon className={`w-5 h-5 mr-3 mt-0.5 ${rec.type === 'warning' ? 'text-orange-600' : rec.type === 'success' ? 'text-success-600' : 'text-primary-600'}`} />
+                                        <rec.icon className={`w-5 h-5 mr-3 mt-0.5 ${rec.type === 'warning' ? 'text-warning-600' : rec.type === 'success' ? 'text-success-600' : 'text-primary-600'}`} />
                                         <div><h3 className="font-bold text-neutral-900 mb-1 text-sm">{rec.title}</h3><p className="text-xs text-neutral-700 leading-relaxed">{rec.message}</p></div>
                                     </div>
                                 </motion.div>
@@ -204,16 +205,16 @@ export default function AnalyticsDashboard() {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                     {[
-                        { label: 'Total Swaps', value: analytics?.totalSwaps || 0, icon: Users, bg: 'from-primary-500 to-secondary-500', type: 'swaps' },
-                        { label: 'Active Projects', value: analytics?.runningProjects || 0, icon: Activity, bg: 'from-primary-500 to-accent-500', type: 'projects' },
-                        { label: 'Sessions', value: analytics?.totalSessions || 0, icon: Layout, bg: 'from-orange-500 to-amber-500', type: 'sessions' },
-                        { label: 'Progress', value: `${analytics?.overallProgress || 0}%`, icon: CheckCircle2, bg: 'from-success-500 to-success-500', type: 'progress' },
-                        { label: 'Total Hours', value: analytics?.totalHours || 0, icon: Clock, bg: 'from-accent-500 to-error-500', type: 'hours' },
-                        { label: 'Avg Rating', value: (analytics?.averageRating || 0).toFixed(1), icon: Star, bg: 'from-warning-500 to-orange-500', type: 'rating' }
+                        { label: 'Total Swaps', value: analytics?.totalSwaps || 0, icon: Users, bg: 'bg-primary-500', type: 'swaps' },
+                        { label: 'Active Projects', value: analytics?.runningProjects || 0, icon: Activity, bg: 'bg-primary-500', type: 'projects' },
+                        { label: 'Sessions', value: analytics?.totalSessions || 0, icon: Layout, bg: 'bg-warning-500', type: 'sessions' },
+                        { label: 'Progress', value: `${analytics?.overallProgress || 0}%`, icon: CheckCircle2, bg: 'bg-success-500', type: 'progress' },
+                        { label: 'Total Hours', value: analytics?.totalHours || 0, icon: Clock, bg: 'bg-accent-500', type: 'hours' },
+                        { label: 'Avg Rating', value: (analytics?.averageRating || 0).toFixed(1), icon: Star, bg: 'bg-warning-500', type: 'rating' }
                     ].map((stat, idx) => (
                         <motion.div key={idx} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }} whileHover={{ scale: 1.02 }} onClick={() => setActiveModal(stat.type)} className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 relative overflow-hidden cursor-pointer group">
                             <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity"><stat.icon className="w-12 h-12 text-neutral-900" /></div>
-                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.bg} flex items-center justify-center mb-3 shadow-sm`}><stat.icon className="w-5 h-5 text-white" /></div>
+                            <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center mb-3 shadow-sm`}><stat.icon className="w-5 h-5 text-white" /></div>
                             <h3 className="text-2xl font-bold text-neutral-900">{stat.value}</h3>
                             <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mt-1">{stat.label}</p>
                         </motion.div>
@@ -222,7 +223,7 @@ export default function AnalyticsDashboard() {
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 lg:col-span-2 min-h-[400px]">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 lg:col-span-2 min-h-[400px]">
                         <h3 className="text-lg font-bold text-neutral-900 mb-6 flex items-center"><Clock className="w-5 h-5 mr-2 text-primary-600" />Activity Overview</h3>
                         <div className="h-72 w-full">
                             <ResponsiveContainer width="100%" height="100%" key={`bar-${displayWeeklyData.length}`}>
@@ -237,7 +238,7 @@ export default function AnalyticsDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 min-h-[400px]">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 min-h-[400px]">
                         <h3 className="text-lg font-bold text-neutral-900 mb-6 flex items-center"><Target className="w-5 h-5 mr-2 text-accent-600" />Skill Proficiency</h3>
                         <div className="h-72 w-full">
                             <ResponsiveContainer width="100%" height="100%" key={`radar-${skillsData.length}`}>
@@ -254,7 +255,7 @@ export default function AnalyticsDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 min-h-[350px]">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 min-h-[350px]">
                         <h3 className="text-lg font-bold text-neutral-900 mb-6 flex items-center"><TrendingUp className="w-5 h-5 mr-2 text-success-600" />Engagement Trend</h3>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
@@ -275,8 +276,8 @@ export default function AnalyticsDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 min-h-[350px]">
-                        <h3 className="text-lg font-bold text-neutral-900 mb-6 flex items-center"><Activity className="w-5 h-5 mr-2 text-orange-600" />Market Trends</h3>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 min-h-[350px]">
+                        <h3 className="text-lg font-bold text-neutral-900 mb-6 flex items-center"><Activity className="w-5 h-5 mr-2 text-warning-600" />Market Trends</h3>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -290,7 +291,7 @@ export default function AnalyticsDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-6 text-white relative overflow-hidden flex flex-col justify-between shadow-lg">
+                    <div className="bg-primary-600 rounded-xl p-6 text-white relative overflow-hidden flex flex-col justify-between shadow-lg">
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
@@ -314,13 +315,12 @@ export default function AnalyticsDashboard() {
                                 </div>
                             </div>
                         </div>
-                        <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                     </div>
                 </div>
 
                 {/* Bottom Section: Activity Log & Reviews */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 lg:col-span-1">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 lg:col-span-1">
                         <h3 className="text-lg font-bold text-neutral-900 flex items-center mb-4"><TrendingUp className="w-5 h-5 mr-2 text-success-600" />Recent Activity Log</h3>
                         <div className="space-y-4">
                             {analytics?.weeklyActivity && analytics.weeklyActivity.length > 0 ? analytics.weeklyActivity.slice(-5).reverse().map((day, idx) => (
@@ -338,7 +338,7 @@ export default function AnalyticsDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 lg:col-span-2">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 lg:col-span-2">
                         <h3 className="text-lg font-bold text-neutral-900 flex items-center mb-4"><Star className="w-5 h-5 mr-2 text-warning-500" />Recent Community Feedback</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {[
@@ -367,7 +367,7 @@ export default function AnalyticsDashboard() {
             <AnimatePresence>
                 {activeModal && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setActiveModal(null)}>
-                        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+                        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative">
                             <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 p-2 hover:bg-neutral-100 rounded-full transition-colors"><X className="w-5 h-5 text-neutral-500" /></button>
                             <h2 className="text-xl font-bold text-neutral-900 mb-4 capitalize">{activeModal.replace('-', ' ')} Details</h2>
                             {renderModalContent()}

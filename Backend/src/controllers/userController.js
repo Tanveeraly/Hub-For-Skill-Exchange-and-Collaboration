@@ -719,13 +719,10 @@ const getAllUsersFullInfo = asynHandler(async (req, res, next) => {
       }
     },
     select: {
+      // Public directory: never expose email, auth provider ids or roles here.
       id: true,
       name: true,
-      email: true,
       isVerified: true,
-      role: true,
-      provider: true,
-      providerId: true,
       createdAt: true,
       updatedAt: true,
 
@@ -771,6 +768,7 @@ const getAllUsersFullInfo = asynHandler(async (req, res, next) => {
 
       // ✅ Include Skill Listings (correct relation name)
       listings: {
+        where: { visibility: 'PUBLIC' },
         select: {
           id: true,
           title: true,

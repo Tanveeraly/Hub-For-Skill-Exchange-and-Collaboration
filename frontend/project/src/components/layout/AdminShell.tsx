@@ -1,39 +1,45 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { BarChart3, BookOpenCheck, Briefcase, FileWarning, ShieldCheck, Users, ScrollText, BadgeCheck, LayoutDashboard, LogOut } from 'lucide-react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { ArrowLeft, BadgeCheck, BookOpenCheck, Briefcase, FileWarning, LayoutDashboard, Lock, MessageSquareWarning, ScrollText, Users } from 'lucide-react';
+import { RootState } from '../../store/store';
+import Logo from '../ui/Logo';
 
 const navItems = [
-  { to: '/admin', label: 'Dashboard Overview', icon: LayoutDashboard },
+  { to: '/admin', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/disputes', label: 'Disputes', icon: FileWarning },
-  { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText },
-  { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/admin/complaints', label: 'Complaints', icon: MessageSquareWarning },
   { to: '/admin/portfolios', label: 'Portfolios', icon: Briefcase },
   { to: '/admin/certifications', label: 'Certifications', icon: BadgeCheck },
-  { to: '/admin/complaints', label: 'Complaints', icon: ShieldCheck },
   { to: '/admin/courses', label: 'Courses', icon: BookOpenCheck },
-  { to: '/admin/security', label: 'Security', icon: ShieldCheck },
+  { to: '/admin/jobs', label: 'Automated jobs', icon: ScrollText },
+  { to: '/admin/security', label: 'Security & audit log', icon: Lock },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen bg-slate-100 text-slate-100">
-      <aside className="w-72 bg-slate-900 text-slate-200">
-        <div className="flex items-center gap-3 border-b border-slate-700 px-4 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 font-bold text-white">H</div>
-          <div>
-            <p className="font-semibold text-white">HubForSkills</p>
-            <p className="text-xs text-slate-400">Admin Portal</p>
-          </div>
-        </div>
+  const { pathname } = useLocation();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const current = navItems.find((item) => item.to === pathname) ?? navItems[0];
+  const initials = user?.name?.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase() || 'A';
 
-        <nav className="space-y-1 p-3">
+  return (
+    <div className="flex min-h-screen bg-neutral-50 text-neutral-900">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-neutral-200 bg-white md:flex">
+        <div className="flex h-14 items-center gap-2 border-b border-neutral-200 px-4">
+          <Logo />
+          <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-600">Admin</span>
+        </div>
+        <nav aria-label="Admin" className="flex-1 space-y-0.5 p-2">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
+              end
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`
+                `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
+                  isActive ? 'bg-primary-50 text-primary-700' : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                }`
               }
             >
               <Icon className="h-4 w-4" />
@@ -41,29 +47,37 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             </NavLink>
           ))}
         </nav>
-
-        <div className="mt-auto border-t border-slate-700 p-4 text-sm text-slate-300">
-          <button className="flex items-center gap-2 text-slate-300 hover:text-white">
-            <LogOut className="h-4 w-4" />
-            Return to User Site
-          </button>
-        </div>
+        <Link to="/home" className="flex items-center gap-2 border-t border-neutral-200 px-4 py-3 text-sm text-neutral-600 hover:text-neutral-900">
+          <ArrowLeft className="h-4 w-4" />
+          Back to site
+        </Link>
       </aside>
 
-      <div className="flex-1 bg-slate-100">
-        <header className="border-b border-slate-200 bg-white px-6 py-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-600">Administration</p>
-              <h1 className="mt-1 text-2xl font-bold text-slate-900">Admin dashboard</h1>
-            </div>
-            <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 font-semibold text-primary-700">AM</span>
-              Admin User
-            </div>
+      <div className="min-w-0 flex-1">
+        <header className="flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 md:px-6">
+          <h1 className="text-lg font-semibold text-neutral-900">{current.label}</h1>
+          <div className="flex items-center gap-2 text-sm text-neutral-700">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700">{initials}</span>
+            <span className="hidden sm:inline">{user?.name || 'Administrator'}</span>
           </div>
         </header>
-        <main className="p-6">{children}</main>
+
+        {/* Mobile: horizontal section switcher */}
+        <nav aria-label="Admin sections" className="flex gap-1 overflow-x-auto border-b border-neutral-200 bg-white px-2 py-2 md:hidden">
+          <Link to="/home" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-neutral-600">← Site</Link>
+          {navItems.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end
+              className={({ isActive }) => `whitespace-nowrap rounded-md px-3 py-1.5 text-sm ${isActive ? 'bg-primary-50 font-medium text-primary-700' : 'text-neutral-600'}`}
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

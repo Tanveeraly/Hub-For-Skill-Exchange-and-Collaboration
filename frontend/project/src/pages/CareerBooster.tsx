@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import Tabs from '../components/ui/Tabs';
 import { RootState, AppDispatch } from '../store/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -37,11 +38,22 @@ import {
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import SwapRequestModal from '../components/SwapRequestModal';
+import { API_BASE } from '../config';
+import { toast } from '../lib/toast';
 
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
 
 type TabType = 'resume' | 'certifications' | 'courses' | 'analytics' | 'linkedin' | 'endorsements' | 'growth';
+type GroupKey = 'certificates' | 'resume' | 'courses' | 'progress';
+
+// Seven features grouped into four tabs a member can understand at a glance.
+const GROUPS: { key: GroupKey; label: string; hint: string; sections: TabType[] }[] = [
+    { key: 'certificates', label: 'Certificates', hint: 'Certificates from finished swaps, ones you add yourself, and endorsements from partners.', sections: ['certifications', 'endorsements'] },
+    { key: 'resume', label: 'Resume', hint: 'A resume built from your profile and swaps. Download it or copy it to LinkedIn.', sections: ['resume', 'linkedin'] },
+    { key: 'courses', label: 'Courses', hint: 'Short courses you can enrol in.', sections: ['courses'] },
+    { key: 'progress', label: 'Progress', hint: 'Your numbers over time, plus suggestions for what to learn next.', sections: ['analytics', 'growth'] },
+];
 
 export default function CareerBooster() {
     const dispatch = useDispatch<AppDispatch>();
@@ -50,7 +62,8 @@ export default function CareerBooster() {
     const { courses, registrations } = useSelector((state: RootState) => state.courses);
     const currentUser = useSelector((state: RootState) => state.auth.user);
 
-    const [activeTab, setActiveTab] = useState<TabType>('resume');
+    const [activeGroup, setActiveGroup] = useState<GroupKey>('certificates');
+    const group = GROUPS.find((g) => g.key === activeGroup)!;
     const [endorseModal, setEndorseModal] = useState<any>(null);
     const [endorseForm, setEndorseForm] = useState({ skillName: '', message: '' });
     const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -69,7 +82,7 @@ export default function CareerBooster() {
     }, [dispatch]);
 
     useEffect(() => {
-        switch (activeTab) {
+        group.sections.forEach((section) => { switch (section) {
             case 'resume': dispatch(fetchResume()); break;
             case 'certifications': dispatch(fetchCertifications()); break;
             case 'analytics': dispatch(fetchCareerAnalytics()); break;
@@ -83,8 +96,8 @@ export default function CareerBooster() {
                 dispatch(fetchRecommendations());
                 dispatch(fetchUserRegistrations());
                 break;
-        }
-    }, [activeTab, dispatch]);
+        } });
+    }, [group, dispatch]);
 
     const handleDownloadResumePDF = async () => {
         if (!resumeRef.current) return;
@@ -133,16 +146,6 @@ export default function CareerBooster() {
         setEndorseForm({ skillName: '', message: '' });
     };
 
-    const tabs = [
-        { key: 'resume' as TabType, label: 'Resume Builder', icon: FileText },
-        { key: 'certifications' as TabType, label: 'Certifications', icon: Award },
-        { key: 'courses' as TabType, label: 'Courses', icon: GraduationCap },
-        { key: 'growth' as TabType, label: 'Growth & Suggestions', icon: Zap },
-        { key: 'analytics' as TabType, label: 'Career Analytics', icon: TrendingUp },
-        { key: 'linkedin' as TabType, label: 'LinkedIn Export', icon: Linkedin },
-        { key: 'endorsements' as TabType, label: 'Endorsements', icon: ThumbsUp },
-    ];
-
     // ─── RESUME TAB (ATS-Friendly) ───
     const renderResume = () => {
         if (!resume) return <LoadingState />;
@@ -157,7 +160,7 @@ export default function CareerBooster() {
                     <button
                         onClick={handleDownloadResumePDF}
                         disabled={isDownloading}
-                        className="flex items-center px-5 py-2.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 disabled:opacity-60"
+                        className="flex items-center px-5 py-2.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg disabled:opacity-60"
                     >
                         {isDownloading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
                         Download PDF
@@ -169,7 +172,7 @@ export default function CareerBooster() {
                     {/* Header - Professional Primary Color */}
                     <div className="bg-primary-600 text-white p-10 flex flex-col md:flex-row items-center justify-between gap-8">
                         {/* Profile Picture */}
-                        <div className="flex-shrink-0 w-32 h-32 rounded-full border-4 border-white/20 overflow-hidden bg-primary-700 flex items-center justify-center shadow-2xl">
+                        <div className="flex-shrink-0 w-32 h-32 rounded-full border-4 border-white/20 overflow-hidden bg-primary-700 flex items-center justify-center shadow-lg">
                             {resume.avatarUrl || currentUser?.profile?.avatarUrl ? (
                                 <img src={resume.avatarUrl || currentUser?.profile?.avatarUrl} alt="Profile" crossOrigin="anonymous" className="w-full h-full object-cover" />
                             ) : (
@@ -179,7 +182,7 @@ export default function CareerBooster() {
 
                         {/* Middle Content */}
                         <div className="flex-1 text-center">
-                            <h1 className="text-4xl font-black tracking-tight uppercase mb-2">{resume.name}</h1>
+                            <h1 className="text-4xl font-bold tracking-tight uppercase mb-2">{resume.name}</h1>
                             <div className="flex flex-wrap items-center justify-center gap-4 text-primary-100 font-medium text-sm">
                                 {(resume.email || currentUser?.email) && <span>{resume.email || currentUser?.email}</span>}
                                 {(resume.email || currentUser?.email) && resume.location && <span className="opacity-50">|</span>}
@@ -190,7 +193,7 @@ export default function CareerBooster() {
                         </div>
 
                         {/* QR Code */}
-                        <div className="flex-shrink-0 flex flex-col items-center justify-center bg-white p-3 rounded-xl shadow-2xl">
+                        <div className="flex-shrink-0 flex flex-col items-center justify-center bg-white p-3 rounded-xl shadow-lg">
                             <QRCodeSVG value={`${window.location.origin}/profile/${currentUser?.id}`} size={80} level="M" />
                             <span className="text-[9px] font-bold text-primary-900 uppercase tracking-widest mt-2 border-t border-primary-100 pt-1 w-full text-center">Scan to Verify</span>
                         </div>
@@ -202,7 +205,7 @@ export default function CareerBooster() {
                             {/* Skills */}
                             {resume.skills?.length > 0 && (
                                 <div>
-                                    <h2 className="text-sm font-black text-primary-600 uppercase tracking-widest mb-4 flex items-center">
+                                    <h2 className="text-sm font-bold text-primary-600 uppercase tracking-widest mb-4 flex items-center">
                                         <span className="w-6 border-t-2 border-primary-600 mr-2"></span> Skills
                                     </h2>
                                     <div className="flex flex-col gap-3 text-sm text-neutral-700">
@@ -219,7 +222,7 @@ export default function CareerBooster() {
                             {/* Certifications */}
                             {resume.certifications?.length > 0 && (
                                 <div>
-                                    <h2 className="text-sm font-black text-primary-600 uppercase tracking-widest mb-4 flex items-center">
+                                    <h2 className="text-sm font-bold text-primary-600 uppercase tracking-widest mb-4 flex items-center">
                                         <span className="w-6 border-t-2 border-primary-600 mr-2"></span> Certifications
                                     </h2>
                                     <div className="space-y-5">
@@ -227,7 +230,7 @@ export default function CareerBooster() {
                                             <div key={i} className="text-sm">
                                                 <p className="font-bold text-neutral-900 leading-tight">{cert.skillName}</p>
                                                 <p className="text-[11px] text-primary-600 font-bold uppercase tracking-wider my-1">{cert.hoursLogged} hours logged</p>
-                                                {cert.partnerVerified && <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mt-1">✓ Verified</p>}
+                                                {cert.partnerVerified && <p className="text-[10px] text-success-600 font-bold uppercase tracking-wider mt-1">✓ Verified</p>}
                                             </div>
                                         ))}
                                     </div>
@@ -240,7 +243,7 @@ export default function CareerBooster() {
                             {/* Professional Summary */}
                             {resume.bio && (
                                 <div>
-                                    <h2 className="text-sm font-black text-primary-600 uppercase tracking-widest mb-4 flex items-center">
+                                    <h2 className="text-sm font-bold text-primary-600 uppercase tracking-widest mb-4 flex items-center">
                                         <span className="w-8 border-t-2 border-primary-600 mr-2"></span> Summary
                                     </h2>
                                     <p className="text-sm text-neutral-700 leading-relaxed text-justify">{resume.bio}</p>
@@ -250,7 +253,7 @@ export default function CareerBooster() {
                             {/* Experience */}
                             {resume.experience?.length > 0 && (
                                 <div>
-                                    <h2 className="text-sm font-black text-primary-600 uppercase tracking-widest mb-4 flex items-center">
+                                    <h2 className="text-sm font-bold text-primary-600 uppercase tracking-widest mb-4 flex items-center">
                                         <span className="w-8 border-t-2 border-primary-600 mr-2"></span> Experience
                                     </h2>
                                     <div className="space-y-6">
@@ -274,7 +277,7 @@ export default function CareerBooster() {
                             {/* Endorsements */}
                             {resume.endorsements?.length > 0 && (
                                 <div>
-                                    <h2 className="text-sm font-black text-primary-600 uppercase tracking-widest mb-4 flex items-center">
+                                    <h2 className="text-sm font-bold text-primary-600 uppercase tracking-widest mb-4 flex items-center">
                                         <span className="w-8 border-t-2 border-primary-600 mr-2"></span> Endorsements
                                     </h2>
                                     <div className="space-y-4">
@@ -295,15 +298,15 @@ export default function CareerBooster() {
                             <div className="pt-6 mt-6 border-t border-neutral-100">
                                 <div className="grid grid-cols-3 gap-4 text-center">
                                     <div className="p-3 bg-primary-50 rounded-lg">
-                                        <p className="text-xl font-black text-primary-700">{resume.totalSwaps}</p>
+                                        <p className="text-xl font-bold text-primary-700">{resume.totalSwaps}</p>
                                         <p className="text-[10px] font-bold text-primary-600 uppercase tracking-widest mt-1">Exchanges</p>
                                     </div>
                                     <div className="p-3 bg-primary-50 rounded-lg">
-                                        <p className="text-xl font-black text-primary-700">{resume.totalHours}</p>
+                                        <p className="text-xl font-bold text-primary-700">{resume.totalHours}</p>
                                         <p className="text-[10px] font-bold text-primary-600 uppercase tracking-widest mt-1">Hours Logged</p>
                                     </div>
                                     <div className="p-3 bg-primary-50 rounded-lg">
-                                        <p className="text-xl font-black text-primary-700">{resume.averageRating}<span className="text-sm text-primary-500">/5</span></p>
+                                        <p className="text-xl font-bold text-primary-700">{resume.averageRating}<span className="text-sm text-primary-500">/5</span></p>
                                         <p className="text-[10px] font-bold text-primary-600 uppercase tracking-widest mt-1">Avg Rating</p>
                                     </div>
                                 </div>
@@ -329,7 +332,7 @@ export default function CareerBooster() {
                         <p className="text-sm text-neutral-500 mt-1">External certificates & platform course completions</p>
                     </div>
                     <button onClick={() => setShowExtCertModal(true)}
-                        className="flex items-center px-4 py-2.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all text-sm shadow-lg shadow-primary-200">
+                        className="flex items-center px-4 py-2.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all text-sm shadow-lg">
                         <Plus className="w-4 h-4 mr-2" />Add External Certificate
                     </button>
                 </div>
@@ -345,7 +348,7 @@ export default function CareerBooster() {
                         {certifications.map((cert: any) => {
                             const status = cert.verificationStatus || 'PENDING';
                             return (
-                                <div key={cert.id} id={`cert-${cert.certificateId}`} className="relative bg-white border border-neutral-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden">
+                                <div key={cert.id} id={`cert-${cert.certificateId}`} className="relative bg-white border border-neutral-200 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden">
                                     <div className="h-2 w-full bg-primary-600"></div>
                                     <div className="p-6 flex-1 flex flex-col">
                                         <div className="flex justify-between items-start mb-4">
@@ -354,13 +357,13 @@ export default function CareerBooster() {
                                                     <Award className="w-6 h-6 text-primary-600" />
                                                 </div>
                                             </div>
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${status === 'VERIFIED' ? 'bg-success-50 text-success-700 border border-success-200' : status === 'PENDING' ? 'bg-warning-50 text-warning-700 border border-warning-200' : 'bg-error-50 text-error-700 border border-error-200'}`}>
                                                 {status === 'VERIFIED' ? '✓ Verified' : status === 'PENDING' ? '⏳ Pending' : '✗ Rejected'}
                                             </span>
                                         </div>
                                         
                                         <div className="mb-5 flex-1">
-                                            <h3 className="text-xl font-black text-neutral-900 mb-1 leading-tight">{cert.skillName}</h3>
+                                            <h3 className="text-xl font-bold text-neutral-900 mb-1 leading-tight">{cert.skillName}</h3>
                                             <p className="text-sm font-semibold text-primary-600 uppercase tracking-widest">{cert.platformName || 'External Certificate'}</p>
                                         </div>
 
@@ -398,7 +401,7 @@ export default function CareerBooster() {
                                                 </div>
                                             )}
                                             <button onClick={() => handleDownloadCertPDF(cert.certificateId)}
-                                                className="flex items-center justify-center py-2.5 bg-primary-600 rounded-xl text-sm font-bold text-white hover:bg-primary-700 transition-colors shadow-md shadow-primary-200">
+                                                className="flex items-center justify-center py-2.5 bg-primary-600 rounded-xl text-sm font-bold text-white hover:bg-primary-700 transition-colors shadow-md">
                                                 <Download className="w-4 h-4 mr-2" />PDF
                                             </button>
                                         </div>
@@ -414,12 +417,12 @@ export default function CareerBooster() {
                     {showExtCertModal && (
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                                className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                                className="bg-white rounded-xl p-6 max-w-lg w-full shadow-lg max-h-[90vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-xl font-bold text-neutral-900">Add External Certificate</h3>
                                     <button onClick={() => setShowExtCertModal(false)} className="p-2 hover:bg-neutral-100 rounded-full"><X className="w-5 h-5 text-neutral-400" /></button>
                                 </div>
-                                <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-xl mb-4 flex items-start">
+                                <p className="text-sm text-warning-600 bg-warning-50 p-3 rounded-xl mb-4 flex items-start">
                                     <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
                                     External certificates require admin verification before being marked as verified.
                                 </p>
@@ -448,14 +451,14 @@ export default function CareerBooster() {
                                                 formData.append('file', file);
                                                 try {
                                                     // @ts-ignore - axios might not be imported but let's assume it is or we'll import it
-                                                    const res = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, { withCredentials: true });
+                                                    const res = await axios.post(`${API_BASE}/files/upload`, formData, { withCredentials: true });
                                                     setExtCertForm({ ...extCertForm, certImage: res.data.data.url });
                                                 } catch (err) {
                                                     console.error('Upload failed', err);
                                                 }
                                             }
                                         }} className="w-full p-2 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" />
-                                        {extCertForm.certImage && <div className="mt-2 text-xs text-emerald-600 font-semibold flex items-center">✓ Image uploaded successfully</div>}
+                                        {extCertForm.certImage && <div className="mt-2 text-xs text-success-600 font-semibold flex items-center">✓ Image uploaded successfully</div>}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
@@ -482,7 +485,7 @@ export default function CareerBooster() {
                                             }));
                                             setShowExtCertModal(false);
                                             setExtCertForm({ skillName: '', provider: '', credentialUrl: '', hoursLogged: '', certImage: '', platformName: '' });
-                                        }} className="flex-1 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 disabled:opacity-50 shadow-lg shadow-primary-200">
+                                        }} className="flex-1 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 disabled:opacity-50 shadow-lg">
                                             Submit for Verification
                                         </button>
                                     </div>
@@ -520,16 +523,16 @@ export default function CareerBooster() {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                        { label: 'Completed Swaps', value: analytics.completedSwaps, icon: CheckCircle2, bg: 'from-success-500 to-success-500' },
-                        { label: 'Completion Rate', value: `${analytics.completionRate}%`, icon: Target, bg: 'from-primary-500 to-secondary-500' },
-                        { label: 'Total Hours', value: analytics.totalHours, icon: Clock, bg: 'from-accent-500 to-error-500' },
-                        { label: 'Avg Rating', value: analytics.averageRating, icon: Star, bg: 'from-warning-500 to-orange-500' },
+                        { label: 'Completed Swaps', value: analytics.completedSwaps, icon: CheckCircle2, bg: 'bg-success-500' },
+                        { label: 'Completion Rate', value: `${analytics.completionRate}%`, icon: Target, bg: 'bg-primary-500' },
+                        { label: 'Total Hours', value: analytics.totalHours, icon: Clock, bg: 'bg-accent-500' },
+                        { label: 'Avg Rating', value: analytics.averageRating, icon: Star, bg: 'bg-warning-500' },
                     ].map((stat, idx) => (
                         <motion.div key={idx} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.05 }}
                             className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 relative overflow-hidden"
                         >
-                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.bg} flex items-center justify-center mb-3 shadow-sm`}>
+                            <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center mb-3 shadow-sm`}>
                                 <stat.icon className="w-5 h-5 text-white" />
                             </div>
                             <h3 className="text-2xl font-bold text-neutral-900">{stat.value}</h3>
@@ -556,7 +559,7 @@ export default function CareerBooster() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Hours per Skill */}
                     {hoursData.length > 0 && (
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 min-h-[350px]">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 min-h-[350px]">
                             <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center">
                                 <Clock className="w-5 h-5 mr-2 text-primary-600" />Hours per Skill
                             </h3>
@@ -576,7 +579,7 @@ export default function CareerBooster() {
 
                     {/* Skills Learned Radar */}
                     {skillsData.length > 0 && (
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 min-h-[350px]">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 min-h-[350px]">
                             <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center">
                                 <Target className="w-5 h-5 mr-2 text-accent-600" />Skills Learned
                             </h3>
@@ -596,7 +599,7 @@ export default function CareerBooster() {
 
                     {/* Monthly Progress */}
                     {monthlyData.length > 0 && (
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 min-h-[350px]">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 min-h-[350px]">
                             <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center">
                                 <TrendingUp className="w-5 h-5 mr-2 text-success-600" />Monthly Progress
                             </h3>
@@ -622,7 +625,7 @@ export default function CareerBooster() {
 
                     {/* Rating Trend */}
                     {ratingData.length > 0 && (
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100 min-h-[350px]">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 min-h-[350px]">
                             <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center">
                                 <Star className="w-5 h-5 mr-2 text-warning-500" />Rating Trend
                             </h3>
@@ -665,8 +668,7 @@ export default function CareerBooster() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="bg-gradient-to-r from-[#0077B5] to-[#00a0dc] rounded-2xl p-6 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                <div className="bg-[#0077B5] rounded-xl p-6 text-white relative overflow-hidden">
                     <div className="relative z-10 flex gap-6">
                         <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20">
                             <p className="text-2xl font-bold">{linkedIn.stats?.totalSwaps || 0}</p>
@@ -714,7 +716,7 @@ export default function CareerBooster() {
 
                     {/* Experience Entries */}
                     {linkedIn.experienceEntries?.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+                        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
                             <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
                                 <h3 className="font-bold text-neutral-900 flex items-center">
                                     <Briefcase className="w-4 h-4 mr-2 text-primary-600" />Experience Entries
@@ -747,7 +749,7 @@ export default function CareerBooster() {
 
                     {/* Certifications for LinkedIn */}
                     {linkedIn.certEntries?.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+                        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
                             <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
                                 <h3 className="font-bold text-neutral-900 flex items-center">
                                     <Award className="w-4 h-4 mr-2 text-warning-600" />Licenses & Certifications
@@ -796,16 +798,16 @@ export default function CareerBooster() {
 
                 {/* Endorse Partners Section */}
                 {eligible.length > 0 && (
-                    <div className="bg-gradient-to-r from-blue-50 to-sky-50 rounded-2xl p-6 border border-blue-100">
+                    <div className="bg-primary-50 rounded-xl p-6 border border-primary-100">
                         <h3 className="font-bold text-neutral-900 mb-4 flex items-center">
-                            <ThumbsUp className="w-5 h-5 mr-2 text-blue-600" />
+                            <ThumbsUp className="w-5 h-5 mr-2 text-primary-600" />
                             Endorse Your Swap Partners
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {eligible.map((swap: any) => (
-                                <div key={swap.swapId} className="bg-white rounded-xl p-4 border border-blue-100 shadow-sm flex items-center justify-between">
+                                <div key={swap.swapId} className="bg-white rounded-xl p-4 border border-primary-100 shadow-sm flex items-center justify-between">
                                     <div className="flex items-center">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold mr-3">
+                                        <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold mr-3">
                                             {swap.partnerAvatar ? (
                                                 <img src={swap.partnerAvatar} alt="" className="w-full h-full object-cover rounded-xl" />
                                             ) : (
@@ -819,7 +821,7 @@ export default function CareerBooster() {
                                     </div>
                                     <button
                                         onClick={() => setEndorseModal(swap)}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                                        className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm"
                                     >
                                         Endorse
                                     </button>
@@ -833,7 +835,7 @@ export default function CareerBooster() {
                 {received.length > 0 ? (
                     <div className="space-y-4">
                         <h3 className="font-bold text-neutral-900 flex items-center">
-                            <Heart className="w-5 h-5 mr-2 text-blue-500" />
+                            <Heart className="w-5 h-5 mr-2 text-primary-500" />
                             Received Endorsements ({received.length})
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -842,11 +844,11 @@ export default function CareerBooster() {
                                     key={end.id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white rounded-2xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-shadow"
+                                    className="bg-white rounded-xl p-5 border border-primary-100 shadow-sm hover:shadow-md transition-shadow"
                                 >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold mr-3 shadow-sm">
+                                            <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold mr-3 shadow-sm">
                                                 {end.endorser?.profile?.avatarUrl ? (
                                                     <img src={end.endorser.profile.avatarUrl} alt="" className="w-full h-full object-cover rounded-xl" />
                                                 ) : (
@@ -858,25 +860,25 @@ export default function CareerBooster() {
                                                 <p className="text-[10px] text-neutral-400">{new Date(end.createdAt).toLocaleDateString()}</p>
                                             </div>
                                         </div>
-                                        <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">
+                                        <span className="px-2.5 py-1 bg-primary-50 text-primary-700 rounded-lg text-xs font-bold border border-primary-100">
                                             {end.skillName}
                                         </span>
                                     </div>
                                     {end.message && (
-                                        <p className="text-sm text-neutral-600 italic bg-blue-50/50 p-3 rounded-xl border border-blue-50">
+                                        <p className="text-sm text-neutral-600 italic bg-primary-50/50 p-3 rounded-xl border border-primary-50">
                                             "{end.message}"
                                         </p>
                                     )}
                                     {end.swapRequest && (
-                                        <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <p className="text-xs font-semibold text-slate-600 mb-1">Swap Project Details</p>
-                                            <div className="flex items-center gap-3 text-xs text-slate-500">
-                                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">{end.swapRequest.offeredSkill}</span>
+                                        <div className="mt-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100">
+                                            <p className="text-xs font-semibold text-neutral-600 mb-1">Swap Project Details</p>
+                                            <div className="flex items-center gap-3 text-xs text-neutral-500">
+                                                <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded font-medium">{end.swapRequest.offeredSkill}</span>
                                                 <span>↔</span>
-                                                <span className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded font-medium">{end.swapRequest.requestedSkill}</span>
+                                                <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded font-medium">{end.swapRequest.requestedSkill}</span>
                                             </div>
                                             {end.swapRequest.updatedAt && (
-                                                <p className="text-[10px] text-slate-400 mt-1.5">Completed: {new Date(end.swapRequest.updatedAt).toLocaleDateString()}</p>
+                                                <p className="text-[10px] text-neutral-400 mt-1.5">Completed: {new Date(end.swapRequest.updatedAt).toLocaleDateString()}</p>
                                             )}
                                         </div>
                                     )}
@@ -886,7 +888,7 @@ export default function CareerBooster() {
                     </div>
                 ) : (
                     <div className="text-center py-12">
-                        <Heart className="w-16 h-16 text-blue-200 mx-auto mb-4" />
+                        <Heart className="w-16 h-16 text-primary-200 mx-auto mb-4" />
                         <h3 className="text-xl font-bold text-neutral-400">No Endorsements Yet</h3>
                         <p className="text-neutral-400 mt-2">Complete swaps to receive endorsements from partners</p>
                     </div>
@@ -914,14 +916,14 @@ export default function CareerBooster() {
                                     <div key={reg.id} className="bg-white rounded-xl border border-neutral-200 flex flex-col group cursor-pointer shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                                         <div className="aspect-video bg-neutral-100 relative overflow-hidden">
                                             {reg.course?.imageUrl ? (
-                                                <img src={reg.course.imageUrl} alt={reg.course?.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                <img src={reg.course.imageUrl} alt={reg.course?.title} className="w-full h-full object-cover transition-transform duration-300" />
                                             ) : (
-                                                <div className="w-full h-full bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                                                <div className="w-full h-full bg-primary-600 flex items-center justify-center transition-transform duration-300">
                                                     <BookOpen className="w-12 h-12 text-white/20" />
                                                 </div>
                                             )}
                                             {reg.status === 'COMPLETED' && (
-                                                <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
+                                                <div className="absolute top-3 left-3 bg-success-500 text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
                                                     Completed
                                                 </div>
                                             )}
@@ -935,7 +937,7 @@ export default function CareerBooster() {
                                                     <span>{reg.progress}% Complete</span>
                                                 </div>
                                                 <div className="w-full bg-neutral-100 rounded-full h-2 mb-4 overflow-hidden">
-                                                    <div className={`h-full rounded-full ${reg.progress === 100 ? 'bg-emerald-500' : 'bg-primary-600'}`} style={{ width: `${reg.progress}%` }}></div>
+                                                    <div className={`h-full rounded-full ${reg.progress === 100 ? 'bg-success-500' : 'bg-primary-600'}`} style={{ width: `${reg.progress}%` }}></div>
                                                 </div>
                                                 
                                                 {reg.status !== 'COMPLETED' && (
@@ -949,7 +951,7 @@ export default function CareerBooster() {
                                                                 dispatch(updateCourseProgress({ courseId: reg.courseId, progress: 100 }));
                                                                 setTimeout(() => dispatch(fetchCertifications()), 1000);
                                                             }}
-                                                                className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm">
+                                                                className="flex-1 py-2 bg-success-600 text-white rounded-lg text-xs font-bold hover:bg-success-700 transition-colors shadow-sm">
                                                                 Finish & Get Cert
                                                             </button>
                                                         )}
@@ -977,9 +979,9 @@ export default function CareerBooster() {
                                         {/* Cover Image */}
                                         <div className="aspect-video bg-neutral-100 overflow-hidden relative">
                                             {course.imageUrl ? (
-                                                <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover transition-transform duration-300" />
                                             ) : (
-                                                <div className="w-full h-full bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                                                <div className="w-full h-full bg-primary-600 flex items-center justify-center transition-transform duration-300">
                                                     <GraduationCap className="w-12 h-12 text-white/20" />
                                                 </div>
                                             )}
@@ -1035,7 +1037,7 @@ export default function CareerBooster() {
             <div className="space-y-8">
                 {/* Header */}
                 <div>
-                    <h2 className="text-2xl font-black text-neutral-900 tracking-tight">Growth & Suggestions</h2>
+                    <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">Growth & Suggestions</h2>
                     <p className="text-sm text-neutral-500 mt-1">Smart recommendations based on compatibility, trends, and platform courses</p>
                 </div>
 
@@ -1043,29 +1045,29 @@ export default function CareerBooster() {
                     {/* Left & Middle: Collaborators & Growth Path */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* 1. Collaboration Matching */}
-                        <div className="bg-white rounded-3xl p-6 border border-neutral-200/60 shadow-sm space-y-6">
+                        <div className="bg-white rounded-xl p-6 border border-neutral-200/60 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-black text-neutral-900 flex items-center">
+                                <h3 className="text-lg font-bold text-neutral-900 flex items-center">
                                     <Users className="w-5 h-5 mr-2 text-primary-600" />
                                     Compatible Collaborators
                                 </h3>
-                                <span className="text-[10px] uppercase font-black tracking-widest text-primary-600 bg-primary-50 px-2.5 py-1 rounded-md">
+                                <span className="text-[10px] uppercase font-bold tracking-widest text-primary-600 bg-primary-50 px-2.5 py-1 rounded-md">
                                     Top Mutual Matches
                                 </span>
                             </div>
 
                             {(!collaborationMatches || collaborationMatches.length === 0) ? (
-                                <div className="text-center py-10 bg-neutral-50 rounded-2xl border border-neutral-100">
+                                <div className="text-center py-10 bg-neutral-50 rounded-xl border border-neutral-100">
                                     <Users className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
                                     <p className="text-neutral-500 font-medium">No matches found. Try adding more skills to your profile.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {collaborationMatches.map((match: any) => (
-                                        <div key={match.id} className="p-5 bg-neutral-50/50 rounded-2xl border border-neutral-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:shadow-md hover:border-neutral-200/80 transition-all duration-300 group">
+                                        <div key={match.id} className="p-5 bg-neutral-50/50 rounded-xl border border-neutral-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:shadow-md hover:border-neutral-200/80 transition-all duration-300 group">
                                             <div className="flex items-start gap-4">
                                                 {/* Avatar */}
-                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm flex-shrink-0 relative overflow-hidden">
+                                                <div className="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0 relative overflow-hidden">
                                                     {match.avatarUrl ? (
                                                         <img src={match.avatarUrl} alt="" className="w-full h-full object-cover" />
                                                     ) : (
@@ -1075,7 +1077,7 @@ export default function CareerBooster() {
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <h4 className="font-bold text-neutral-900 group-hover:text-primary-600 transition-colors">{match.name}</h4>
-                                                        <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-black rounded-md">
+                                                        <span className="px-2 py-0.5 bg-success-50 border border-success-100 text-success-700 text-[10px] font-bold rounded-md">
                                                             {match.matchScore}% Match
                                                         </span>
                                                     </div>
@@ -1108,7 +1110,7 @@ export default function CareerBooster() {
                                                 </button>
                                                 <button
                                                     onClick={() => handleProposeSwapClick(match)}
-                                                    className="flex-1 md:flex-none px-4 py-2.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-200 transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                                                    className="flex-1 md:flex-none px-4 py-2.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 hover:shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95"
                                                 >
                                                     <RefreshCw className="w-3.5 h-3.5" />
                                                     Propose Swap
@@ -1121,9 +1123,9 @@ export default function CareerBooster() {
                         </div>
 
                         {/* 2. Growth Path & Recommended Courses */}
-                        <div className="bg-white rounded-3xl p-6 border border-neutral-200/60 shadow-sm space-y-6">
+                        <div className="bg-white rounded-xl p-6 border border-neutral-200/60 shadow-sm space-y-6">
                             <div>
-                                <h3 className="text-lg font-black text-neutral-900 flex items-center">
+                                <h3 className="text-lg font-bold text-neutral-900 flex items-center">
                                     <GraduationCap className="w-5 h-5 mr-2 text-success-600" />
                                     Learning Integration & Growth Path
                                 </h3>
@@ -1139,10 +1141,10 @@ export default function CareerBooster() {
                                     const isCompleted = reg?.status === 'COMPLETED';
 
                                     return (
-                                        <div key={course.id} className="bg-neutral-50/50 border border-neutral-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col justify-between gap-4">
+                                        <div key={course.id} className="bg-neutral-50/50 border border-neutral-100 rounded-xl p-5 hover:shadow-md transition-shadow flex flex-col justify-between gap-4">
                                             <div>
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <span className="text-[10px] font-black uppercase bg-success-50 text-success-700 px-2 py-0.5 rounded border border-success-100">
+                                                    <span className="text-[10px] font-bold uppercase bg-success-50 text-success-700 px-2 py-0.5 rounded border border-success-100">
                                                         {course.level}
                                                     </span>
                                                     <span className="text-[10px] font-semibold text-neutral-400">
@@ -1166,11 +1168,11 @@ export default function CareerBooster() {
                                             <div className="border-t border-neutral-100/80 pt-3">
                                                 {isEnrolled ? (
                                                     <div>
-                                                        <div className="flex justify-between text-[10px] font-black text-neutral-500 mb-1.5 uppercase">
+                                                        <div className="flex justify-between text-[10px] font-bold text-neutral-500 mb-1.5 uppercase">
                                                             <span>{isCompleted ? 'Completed ✓' : `${progress}% Complete`}</span>
                                                         </div>
                                                         <div className="w-full bg-neutral-200 rounded-full h-1.5 overflow-hidden">
-                                                            <div className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }}></div>
+                                                            <div className={`h-full rounded-full ${isCompleted ? 'bg-success-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }}></div>
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -1178,7 +1180,7 @@ export default function CareerBooster() {
                                                         onClick={() => {
                                                             dispatch(registerForCourse(course.id)).then(() => {
                                                                 dispatch(fetchUserRegistrations());
-                                                                alert(`Enrolled in ${course.title} successfully!`);
+                                                                toast.success(`You are enrolled in ${course.title}.`);
                                                             });
                                                         }}
                                                         className="w-full py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-100 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1"
@@ -1198,10 +1200,10 @@ export default function CareerBooster() {
                     {/* Right Column: Demand Trends & Growth Skills */}
                     <div className="space-y-8">
                         {/* 1. Skill Demand Trends Chart */}
-                        <div className="bg-white rounded-3xl p-6 border border-neutral-200/60 shadow-sm space-y-6">
+                        <div className="bg-white rounded-xl p-6 border border-neutral-200/60 shadow-sm space-y-6">
                             <div>
-                                <h3 className="text-lg font-black text-neutral-900 flex items-center">
-                                    <TrendingUp className="w-5 h-5 mr-2 text-indigo-600" />
+                                <h3 className="text-lg font-bold text-neutral-900 flex items-center">
+                                    <TrendingUp className="w-5 h-5 mr-2 text-primary-600" />
                                     Demand Trends
                                 </h3>
                                 <p className="text-xs text-neutral-500 mt-1">Top requested skills by matching swaps across the ecosystem</p>
@@ -1225,9 +1227,9 @@ export default function CareerBooster() {
                         </div>
 
                         {/* 2. Growth Skills Suggestions list */}
-                        <div className="bg-white rounded-3xl p-6 border border-neutral-200/60 shadow-sm space-y-4">
-                            <h3 className="text-lg font-black text-neutral-900 flex items-center">
-                                <Zap className="w-5 h-5 mr-2 text-amber-500" />
+                        <div className="bg-white rounded-xl p-6 border border-neutral-200/60 shadow-sm space-y-4">
+                            <h3 className="text-lg font-bold text-neutral-900 flex items-center">
+                                <Zap className="w-5 h-5 mr-2 text-warning-500" />
                                 High Value Skills
                             </h3>
                             <p className="text-xs text-neutral-500 leading-relaxed">
@@ -1236,9 +1238,9 @@ export default function CareerBooster() {
                             
                             <div className="space-y-2">
                                 {growthSkills.map((skill: string, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-amber-50/30 rounded-xl border border-amber-100/50">
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-warning-50/30 rounded-xl border border-warning-100/50">
                                         <span className="font-bold text-neutral-800 text-xs">{skill}</span>
-                                        <span className="text-[10px] font-black text-amber-700 bg-amber-100/50 px-2 py-0.5 rounded">
+                                        <span className="text-[10px] font-bold text-warning-700 bg-warning-100/50 px-2 py-0.5 rounded">
                                             High Demand
                                         </span>
                                     </div>
@@ -1251,8 +1253,8 @@ export default function CareerBooster() {
         );
     };
 
-    const renderTabContent = () => {
-        switch (activeTab) {
+    const renderSection = (section: TabType) => {
+        switch (section) {
             case 'resume': return renderResume();
             case 'certifications': return renderCertifications();
             case 'courses': return renderCourses();
@@ -1265,62 +1267,30 @@ export default function CareerBooster() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-20">
-            <div className="flex">
-                {/* Sidebar */}
-                <aside className="w-64 min-h-[calc(100vh-5rem)] bg-white border-r border-gray-100 p-4 sticky top-20 flex flex-col">
-                    <div className="flex items-center gap-3 mb-8 px-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center">
-                            <TrendingUp className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h2 className="font-bold text-gray-900">Career Booster</h2>
-                            <p className="text-[10px] text-gray-400 uppercase font-semibold">Growth Dashboard</p>
-                        </div>
-                    </div>
-                    
-                    <nav className="space-y-1 flex-1">
-                        {tabs.map(t => (
-                            <button key={t.key} onClick={() => setActiveTab(t.key)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === t.key ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                                <t.icon className="w-4 h-4" />{t.label}
-                            </button>
-                        ))}
-                    </nav>
+        <div className="mx-auto max-w-5xl">
+            <header className="mb-6">
+                <h1 className="text-2xl font-semibold text-neutral-900">Career & certificates</h1>
+                <p className="mt-1 text-sm text-neutral-500">Everything you've earned from your swaps, ready to share.</p>
+                {profile && (
+                    <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+                        <div className="flex gap-2"><dt className="text-neutral-500">Completed swaps</dt><dd className="font-semibold text-neutral-900">{profile.totalCompletedSwaps || 0}</dd></div>
+                        <div className="flex gap-2"><dt className="text-neutral-500">Hours</dt><dd className="font-semibold text-neutral-900">{profile.totalHours || 0}</dd></div>
+                        <div className="flex gap-2"><dt className="text-neutral-500">Rating</dt><dd className="font-semibold text-neutral-900">{profile.averageRating ? `${profile.averageRating}/5` : 'No reviews yet'}</dd></div>
+                    </dl>
+                )}
+            </header>
 
-                    {/* Quick Stats in Sidebar */}
-                    {profile && (
-                        <div className="mt-8 pt-6 border-t border-gray-100 px-3 space-y-3">
-                            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Quick Stats</h3>
-                            {[
-                                { label: 'Swaps', value: profile.totalCompletedSwaps || 0, color: 'text-primary-600' },
-                                { label: 'Hours', value: profile.totalHours || 0, color: 'text-accent-600' },
-                                { label: 'Rating', value: `${profile.averageRating || 0}/5`, color: 'text-warning-600' },
-                            ].map((s, i) => (
-                                <div key={i} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-                                    <span className="text-xs font-semibold text-gray-500">{s.label}</span>
-                                    <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </aside>
+            <Tabs
+                active={activeGroup}
+                onChange={(value) => setActiveGroup(value as GroupKey)}
+                items={GROUPS.map((g) => ({ value: g.key, label: g.label }))}
+            />
+            <p className="mt-4 text-sm text-neutral-600">{group.hint}</p>
 
-                {/* Main Content */}
-                <main className="flex-1 p-8">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2 }}
-                            className="max-w-5xl"
-                        >
-                            {renderTabContent()}
-                        </motion.div>
-                    </AnimatePresence>
-                </main>
+            <div className="mt-6 space-y-12">
+                {group.sections.map((section) => (
+                    <section key={section}>{renderSection(section)}</section>
+                ))}
             </div>
 
             {/* Endorsement Modal */}
@@ -1331,7 +1301,7 @@ export default function CareerBooster() {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+                            className="bg-white rounded-xl p-6 max-w-md w-full shadow-lg"
                         >
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-xl font-bold text-neutral-900">Endorse {endorseModal.partnerName}</h3>
@@ -1370,7 +1340,7 @@ export default function CareerBooster() {
                                     <button
                                         onClick={handleEndorsementSubmit}
                                         disabled={!endorseForm.skillName}
-                                        className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-lg shadow-blue-200"
+                                        className="flex-1 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors disabled:opacity-50 shadow-lg"
                                     >
                                         Submit Endorsement
                                     </button>
@@ -1394,7 +1364,7 @@ export default function CareerBooster() {
                     skillId={selectedSwapPartner.targetListingId}
                     userSkills={profile?.user?.skills?.map((s: any) => s.skillName) || currentUser?.skills?.map((s: any) => s.skillName) || []}
                     onSubmit={(data) => {
-                        alert(`Swap request successfully sent to ${selectedSwapPartner.name}!`);
+                        toast.success(`Swap request sent to ${selectedSwapPartner.name}.`);
                         setShowSwapModal(false);
                         setSelectedSwapPartner(null);
                     }}
@@ -1420,7 +1390,7 @@ function CopyableSection({ title, content, onCopy, copySuccess, icon }: {
 }) {
     const label = title.toLowerCase().replace(/[^a-z]/g, '');
     return (
-        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
                 <h3 className="font-bold text-neutral-900 flex items-center">
                     <span className="text-primary-600 mr-2">{icon}</span>{title}

@@ -7,12 +7,8 @@ import {
     Clock,
     ChevronLeft,
     ChevronRight,
-    ChevronDown,
     Star,
-    RefreshCw,
-    User,
     Video,
-    ExternalLink,
     FileText,
     Calendar,
     Play,
@@ -45,6 +41,9 @@ import WorkSessionModal from '../components/WorkSessionModal';
 import MeetingInvitationModal from '../components/MeetingInvitationModal';
 import { startWorkSession, endWorkSession, fetchWorkSessions, submitReport, fetchReports } from '../store/slices/collabSlice';
 import Tabs from '../components/ui/Tabs';
+import { API_BASE } from '../config';
+import { toast } from '../lib/toast';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 function useCountdown(targetDate: string | null) {
     const [timeLeft, setTimeLeft] = useState<string | null>(null);
@@ -82,7 +81,7 @@ export default function SwapScheduling() {
     const { myDisputes } = useSelector((state: RootState) => state.disputes);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [activeTab, setActiveTab] = useState<'calendar' | 'pending' | 'active' | 'history' | 'disputes'>('calendar');
+    const [activeTab, setActiveTab] = useState<'calendar' | 'pending' | 'active' | 'history' | 'disputes'>('pending');
     const [selectedSwapForContract, setSelectedSwapForContract] = useState<any>(null);
     const [isContractModalOpen, setIsContractModalOpen] = useState(false);
     const [selectedRequestForRating, setSelectedRequestForRating] = useState<any>(null);
@@ -113,6 +112,21 @@ export default function SwapScheduling() {
     }, [dispatch]);
 
     const allSwaps = [...received, ...sent];
+    const myId = Number(currentUser?.id);
+    const isOpen = (s: any) => ['PENDING', 'RESCHEDULED', 'MORE_INFO_REQUESTED'].includes(s.status);
+    const pendingSwaps = allSwaps.filter(isOpen);
+    const needsMe = (s: any) => {
+        const iSent = Number(s.senderId) === myId;
+        if (s.status === 'RESCHEDULED') {
+            const initiator = typeof s.proposedTimeSlot === 'object' ? Number(s.proposedTimeSlot?.initiatorId) : NaN;
+            return initiator !== myId;
+        }
+        if (s.status === 'MORE_INFO_REQUESTED') return iSent; // they asked me a question
+        return !iSent; // a new request sent to me
+    };
+    const needsMyReply = pendingSwaps.filter(needsMe);
+    const waitingOnThem = pendingSwaps.filter((s: any) => !needsMe(s));
+    const activeCount = allSwaps.filter((s: any) => s.status === 'ACCEPTED').length;
 
     const handleAccept = (id: number, slot: string) => {
         dispatch(respondToSwap({
@@ -122,14 +136,11 @@ export default function SwapScheduling() {
         }));
     };
 
-    const handleReject = (id: number) => {
-        const reason = prompt("Reason for rejection (optional):");
-        dispatch(respondToSwap({ id, status: 'REJECTED', rejectionReason: reason || undefined }));
-    };
+    const [dialog, setDialog] = useState<null | { kind: 'reject' | 'info' | 'complete'; id: number }>(null);
 
-    const handleComplete = (id: number) => {
-        dispatch(completeSwap(id));
-    };
+    const handleReject = (id: number) => setDialog({ kind: 'reject', id });
+
+    const handleComplete = (id: number) => setDialog({ kind: 'complete', id });
 
     const handleRatingSubmit = (rating: number, feedback: string) => {
         if (selectedRequestForRating) {
@@ -153,12 +164,37 @@ export default function SwapScheduling() {
         setIsRescheduleModalOpen(false);
     };
 
-    const handleRequestMoreInfo = (id: number) => {
-        const message = prompt("What additional details do you need?");
-        if (message) {
-            dispatch(requestMoreInfo({ id, message }));
-        }
-    };
+    const handleRequestMoreInfo = (id: number) => setDialog({ kind: 'info', id });
+
+    const openMessages = (partner: any) =>
+        navigate('/messages', { state: { startChatWith: { id: partner?.id, name: partner?.name, avatarUrl: partner?.profile?.avatarUrl } } });
+
+    const dialogConfig = dialog && {
+        reject: {
+            title: 'Decline this request?',
+            description: "They'll be told you declined. Adding a reason is optional but helps them.",
+            inputLabel: 'Reason (optional)',
+            confirmLabel: 'Decline request',
+            tone: 'danger' as const,
+            run: (text: string) => dispatch(respondToSwap({ id: dialog.id, status: 'REJECTED', rejectionReason: text || undefined })),
+        },
+        info: {
+            title: 'Ask a question',
+            description: 'Your question is sent to them. The request stays open until you accept or decline it.',
+            inputLabel: 'Your question',
+            inputRequired: true,
+            confirmLabel: 'Send question',
+            tone: 'primary' as const,
+            run: (text: string) => dispatch(requestMoreInfo({ id: dialog.id, message: text })),
+        },
+        complete: {
+            title: 'Mark this swap as complete?',
+            description: 'Do this once all the sessions you agreed on are done. You will then be able to rate each other.',
+            confirmLabel: 'Mark complete',
+            tone: 'primary' as const,
+            run: () => dispatch(completeSwap(dialog.id)),
+        },
+    }[dialog.kind];
 
     const handleViewProfile = (userId: number) => {
         navigate(`/profile/${userId}`);
@@ -199,7 +235,7 @@ export default function SwapScheduling() {
                 scheduledAt: swap.scheduledAt
             }
         });
-        alert(`Invitation sent to ${partner.name}`);
+        toast.success(`Meeting invitation sent to ${partner.name}.`);
     };
 
     useEffect(() => {
@@ -230,7 +266,7 @@ export default function SwapScheduling() {
         };
 
         const handleInviteRejected = (data: any) => {
-            alert(`${data.acceptorName || 'Partner'} declined the meeting invitation.`);
+            toast.info(`${data.acceptorName || 'Your partner'} declined the meeting invitation.`);
         };
 
         socket.on('meeting-invite-received', handleInviteReceived);
@@ -283,39 +319,61 @@ export default function SwapScheduling() {
 
     const getTabContent = () => {
         switch (activeTab) {
-            case 'pending':
-                const pending = allSwaps.filter((s: any) => s.status === 'PENDING' || s.status === 'RESCHEDULED');
+            case 'pending': {
+                const renderCard = (swap: any) => (
+                    <SwapCard
+                        key={swap.id}
+                        swap={swap}
+                        isSent={Number(swap.senderId) === Number(currentUser?.id)}
+                        onAccept={handleAccept}
+                        onReject={handleReject}
+                        onReschedule={(id: number) => {
+                            setRescheduleData({ ...rescheduleData, id });
+                            setIsRescheduleModalOpen(true);
+                        }}
+                        onJoinMeeting={handleJoinMeeting}
+                        onInviteToMeeting={handleInviteToMeeting}
+                        onRequestMoreInfo={handleRequestMoreInfo}
+                        onViewProfile={handleViewProfile}
+                        onOpenMessages={openMessages}
+                        onViewContract={(s: any) => {
+                            setSelectedSwapForContract(s);
+                            setIsContractModalOpen(true);
+                        }}
+                    />
+                );
+                if (pendingSwaps.length === 0) {
+                    return (
+                        <EmptyState
+                            message="No open requests"
+                            hint="When you send a swap request, or someone sends you one, it appears here."
+                            actionLabel="Find someone to swap with"
+                            onAction={() => navigate('/marketplace')}
+                        />
+                    );
+                }
                 return (
-                    <div className="space-y-4">
-                        {pending.length === 0 && <EmptyState message="No pending requests" />}
-                        {pending.map((swap: any) => (
-                            <SwapCard
-                                key={swap.id}
-                                swap={swap}
-                                isSent={Number(swap.senderId) === Number(currentUser?.id)}
-                                onAccept={handleAccept}
-                                onReject={handleReject}
-                                onReschedule={(id: number) => {
-                                    setRescheduleData({ ...rescheduleData, id });
-                                    setIsRescheduleModalOpen(true);
-                                }}
-                                onJoinMeeting={handleJoinMeeting}
-                                onInviteToMeeting={handleInviteToMeeting}
-                                onRequestMoreInfo={handleRequestMoreInfo}
-                                onViewProfile={handleViewProfile}
-                                onViewContract={(s: any) => {
-                                    setSelectedSwapForContract(s);
-                                    setIsContractModalOpen(true);
-                                }}
-                            />
-                        ))}
+                    <div className="space-y-8">
+                        <section>
+                            <h2 className="text-sm font-semibold text-neutral-900">Waiting for your reply <span className="font-normal text-neutral-500">({needsMyReply.length})</span></h2>
+                            <div className="mt-3 space-y-4">
+                                {needsMyReply.length > 0 ? needsMyReply.map(renderCard) : <p className="text-sm text-neutral-500">Nothing needs your reply right now.</p>}
+                            </div>
+                        </section>
+                        <section>
+                            <h2 className="text-sm font-semibold text-neutral-900">Waiting for the other person <span className="font-normal text-neutral-500">({waitingOnThem.length})</span></h2>
+                            <div className="mt-3 space-y-4">
+                                {waitingOnThem.length > 0 ? waitingOnThem.map(renderCard) : <p className="text-sm text-neutral-500">You have no requests waiting on someone else.</p>}
+                            </div>
+                        </section>
                     </div>
                 );
+            }
             case 'active':
                 const active = allSwaps.filter((s: any) => s.status === 'ACCEPTED');
                 return (
                     <div className="space-y-4">
-                        {active.length === 0 && <EmptyState message="No active sessions" />}
+                        {active.length === 0 && <EmptyState message="Nothing in progress" hint="Swaps move here once both of you agree on a time." actionLabel={needsMyReply.length ? 'See requests waiting for you' : undefined} onAction={() => setActiveTab('pending')} />}
                         {active.map((swap: any) => (
                             <SwapCard
                                 key={swap.id}
@@ -345,7 +403,7 @@ export default function SwapScheduling() {
                 const history = allSwaps.filter((s: any) => s.status === 'COMPLETED' || s.status === 'CANCELLED' || s.status === 'REJECTED');
                 return (
                     <div className="space-y-4">
-                        {history.length === 0 && <EmptyState message="No past sessions" />}
+                        {history.length === 0 && <EmptyState message="No finished swaps yet" hint="When you mark a swap complete it moves here, and you can rate your partner." />}
                         {history.map((swap: any) => (
                             <SwapCard
                                 key={swap.id}
@@ -377,29 +435,29 @@ export default function SwapScheduling() {
             case 'disputes':
                 return (
                     <div className="space-y-4">
-                        {myDisputes.length === 0 && <EmptyState message="No disputes filed yet" />}
+                        {myDisputes.length === 0 && <EmptyState message="No disputes" hint="If a swap goes wrong after you agreed to it, you can open a dispute from the agreement. An administrator will review it." />}
                         {myDisputes.map((dispute: any) => {
                             const isFiler = Number(dispute.filedById) === Number(currentUser?.id);
                             const opponent = isFiler ? dispute.against : dispute.filedBy;
 
                             return (
-                                <div key={dispute.id} className="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-2.5 h-full bg-red-500"></div>
+                                <div key={dispute.id} className="bg-white rounded-xl p-6 border border-neutral-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-2.5 h-full bg-error-500"></div>
                                     <div className="flex flex-col md:flex-row justify-between gap-4">
                                         <div className="flex-1 space-y-3">
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg tracking-wider ${
-                                                    dispute.status === 'RESOLVED' ? 'bg-emerald-100 text-emerald-800' :
-                                                    dispute.status === 'ESCALATED' ? 'bg-rose-100 text-rose-800' :
+                                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg tracking-wider ${
+                                                    dispute.status === 'RESOLVED' ? 'bg-success-100 text-success-800' :
+                                                    dispute.status === 'ESCALATED' ? 'bg-error-100 text-error-800' :
                                                     dispute.status === 'DISMISSED' ? 'bg-neutral-100 text-neutral-800' :
-                                                    'bg-amber-100 text-amber-800'
+                                                    'bg-warning-100 text-warning-800'
                                                 }`}>
                                                     {dispute.status}
                                                 </span>
-                                                <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg tracking-wider ${
-                                                    dispute.priority === 'CRITICAL' ? 'bg-red-200 text-red-900 animate-pulse' :
-                                                    dispute.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                                                    'bg-blue-100 text-blue-800'
+                                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg tracking-wider ${
+                                                    dispute.priority === 'CRITICAL' ? 'bg-error-200 text-error-900' :
+                                                    dispute.priority === 'HIGH' ? 'bg-warning-100 text-warning-800' :
+                                                    'bg-primary-100 text-primary-800'
                                                 }`}>
                                                     {dispute.priority} PRIORITY
                                                 </span>
@@ -439,23 +497,23 @@ export default function SwapScheduling() {
 
                                             {/* Resolution Message Banner */}
                                             {(dispute.status === 'RESOLVED' || dispute.status === 'DISMISSED') && (
-                                                <div className="mt-4 p-4 bg-emerald-50/60 border border-emerald-200/60 rounded-2xl space-y-2">
-                                                    <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-xs">
-                                                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                                <div className="mt-4 p-4 bg-success-50/60 border border-success-200/60 rounded-xl space-y-2">
+                                                    <div className="flex items-center gap-1.5 text-success-900 font-bold text-xs">
+                                                        <CheckCircle2 className="w-4 h-4 text-success-600" />
                                                         Administrative Resolution History
                                                     </div>
                                                     {dispute.resolution && (
-                                                        <p className="text-sm text-emerald-800">
+                                                        <p className="text-sm text-success-800">
                                                             <strong>Resolution decision:</strong> {dispute.resolution}
                                                         </p>
                                                     )}
                                                     {dispute.adminNotes && (
-                                                        <p className="text-xs text-emerald-700 italic">
+                                                        <p className="text-xs text-success-700 italic">
                                                             <strong>Admin notes:</strong> "{dispute.adminNotes}"
                                                         </p>
                                                     )}
                                                     {dispute.resolvedAt && (
-                                                        <p className="text-[10px] text-emerald-600">
+                                                        <p className="text-[10px] text-success-600">
                                                             Resolved on {new Date(dispute.resolvedAt).toLocaleDateString()}
                                                         </p>
                                                     )}
@@ -470,7 +528,7 @@ export default function SwapScheduling() {
                 );
             default:
                 return (
-                    <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                    <div className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
                         <div className="p-6 border-b flex justify-between items-center">
                             <h2 className="text-xl font-bold text-neutral-900 flex items-center">
                                 <CalendarIcon className="w-5 h-5 mr-2 text-primary-600" />
@@ -507,18 +565,12 @@ export default function SwapScheduling() {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-50 pb-20">
-            <div className="max-w-5xl mx-auto px-4">
-                <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="pb-12">
+            <div className="mx-auto max-w-4xl">
+                <header className="mb-6 space-y-4">
                     <div>
-                        <motion.h1
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="text-4xl font-black text-neutral-900 tracking-tight"
-                        >
-                            Swap Center
-                        </motion.h1>
-                        <p className="text-neutral-500 mt-2 font-medium">Coordinate your skills exchange and track growth</p>
+                        <h1 className="text-2xl font-semibold text-neutral-900">My swaps</h1>
+                        <p className="mt-1 text-sm text-neutral-600">Reply to requests, run your sessions and see what you've finished.</p>
                     </div>
 
                     <Tabs
@@ -526,7 +578,7 @@ export default function SwapScheduling() {
                         onChange={(value) => setActiveTab(value as typeof activeTab)}
                         items={['pending', 'active', 'history', 'calendar', 'disputes'].map((tab) => ({
                             value: tab,
-                            label: tab === 'history' ? 'Completed' : tab.charAt(0).toUpperCase() + tab.slice(1),
+                            label: ({ pending: needsMyReply.length ? `Requests (${needsMyReply.length})` : 'Requests', active: activeCount ? `In progress (${activeCount})` : 'In progress', history: 'Completed', calendar: 'Calendar', disputes: 'Disputes' } as Record<string, string>)[tab],
                         }))}
                     />
                 </header>
@@ -543,6 +595,20 @@ export default function SwapScheduling() {
                     </motion.div>
                 </AnimatePresence>
             </div>
+
+            {dialog && dialogConfig && (
+                <ConfirmDialog
+                    isOpen
+                    title={dialogConfig.title}
+                    description={dialogConfig.description}
+                    confirmLabel={dialogConfig.confirmLabel}
+                    tone={dialogConfig.tone}
+                    inputLabel={'inputLabel' in dialogConfig ? dialogConfig.inputLabel : undefined}
+                    inputRequired={'inputRequired' in dialogConfig ? dialogConfig.inputRequired : undefined}
+                    onConfirm={(text) => dialogConfig.run(text)}
+                    onClose={() => setDialog(null)}
+                />
+            )}
 
             <RatingModal
                 isOpen={isRatingModalOpen}
@@ -582,7 +648,7 @@ export default function SwapScheduling() {
                         <motion.div
                             initial={{ scale: 0.9 }}
                             animate={{ scale: 1 }}
-                            className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl"
+                            className="bg-white rounded-xl p-8 max-w-sm w-full shadow-lg"
                         >
                             <h3 className="text-xl font-bold mb-4">Propose new time</h3>
                             <form onSubmit={handleRescheduleSubmit} className="space-y-4">
@@ -631,7 +697,7 @@ export default function SwapScheduling() {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden relative"
+                            className="bg-white rounded-xl w-full max-w-4xl shadow-lg overflow-hidden relative"
                         >
                             <button
                                 onClick={() => setIsChatModalOpen(false)}
@@ -641,9 +707,9 @@ export default function SwapScheduling() {
                             </button>
                             <div className="flex flex-col md:flex-row h-[700px]">
                                 <div className="md:w-1/3 p-8 bg-neutral-50 border-r border-neutral-100 hidden md:block">
-                                    <h3 className="text-2xl font-black text-neutral-900 mb-6">Agreement Details</h3>
+                                    <h3 className="text-2xl font-bold text-neutral-900 mb-6">Agreement Details</h3>
                                     <div className="space-y-6">
-                                        <div className="p-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
+                                        <div className="p-4 bg-white rounded-xl shadow-sm border border-neutral-100">
                                             <p className="text-[10px] font-bold text-primary-600 uppercase tracking-widest mb-2">Partner</p>
                                             <div className="flex items-center">
                                                 <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold mr-3">
@@ -654,13 +720,13 @@ export default function SwapScheduling() {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="p-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
+                                        <div className="p-4 bg-white rounded-xl shadow-sm border border-neutral-100">
                                             <p className="text-[10px] font-bold text-success-600 uppercase tracking-widest mb-2">Skills Exchange</p>
                                             <p className="text-sm font-medium text-neutral-700">
                                                 {selectedSwapForChat.offeredSkill} <span className="text-neutral-400 mx-1">for</span> {selectedSwapForChat.requestedSkill}
                                             </p>
                                         </div>
-                                        <div className="p-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
+                                        <div className="p-4 bg-white rounded-xl shadow-sm border border-neutral-100">
                                             <p className="text-[10px] font-bold text-accent-600 uppercase tracking-widest mb-2">Schedule</p>
                                             <p className="text-sm font-medium text-neutral-700">
                                                 {new Date(selectedSwapForChat.scheduledAt).toLocaleDateString()} at {new Date(selectedSwapForChat.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -710,10 +776,9 @@ export default function SwapScheduling() {
     );
 }
 
-function SwapCard({ swap, isSent, onAccept, onReject, onReschedule, onComplete, onRate, onInviteToMeeting, onRequestMoreInfo, onViewProfile, onStartWork, onOpenChat, onViewContract }: any) {
+function SwapCard({ swap, isSent, onAccept, onReject, onReschedule, onComplete, onRate, onInviteToMeeting, onRequestMoreInfo, onViewProfile, onStartWork, onOpenChat, onViewContract, onOpenMessages }: any) {
     const dispatch = useDispatch<AppDispatch>();
     const partner = isSent ? swap.receiver : swap.sender;
-    const [isSlotsOpen, setIsSlotsOpen] = useState(false);
     const { activeSession, reports } = useSelector((state: RootState) => state.collaboration);
     const currentUser = useSelector((state: RootState) => state.auth.user);
     const timeLeft = useCountdown(swap.scheduledAt);
@@ -767,14 +832,6 @@ function SwapCard({ swap, isSent, onAccept, onReject, onReschedule, onComplete, 
         };
     }, [swap.id, dispatch]);
 
-    // Correction: I should update SwapCard to accept `onStartWork` or I can access the parent state if I lift the card up? No.
-    // I will assume I can update the SwapCard usage in `getTabContent` as well?
-    // I'll stick to the plan: I can't easily change the prop signature everywhere without updating everywhere.
-    // BUT! `SwapCard` is defined in the same file. So I can update `SwapCard` definition and usages in one go.
-
-    // Let's defer the SwapCard update to a separate call or do it carefully.
-    // I'll stick to updating the PROPS usage logic *inside* SwapCard.
-
     const isCurrentActive = activeSession?.swapRequestId === swap.id;
 
     const handleStartWork = () => {
@@ -816,14 +873,14 @@ function SwapCard({ swap, isSent, onAccept, onReject, onReschedule, onComplete, 
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await axios.post('https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/files/upload', formData, {
+            const response = await axios.post(`${API_BASE}/files/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true
             });
-            await axios.post(`https://hub-for-skill-exchange-and-collaboration.onrender.com/api/v1/swaps/${swap.id}/attach`, response.data.data, {
+            await axios.post(`${API_BASE}/swaps/${swap.id}/attach`, response.data.data, {
                 withCredentials: true
             });
-            alert("File attached to agreement!");
+            toast.success('File attached to the agreement.');
         } catch (error) {
             console.error("Attachment failed", error);
         }
@@ -840,393 +897,275 @@ function SwapCard({ swap, isSent, onAccept, onReject, onReschedule, onComplete, 
         return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&sf=true&output=xml`;
     };
 
+    const partnerName = partner?.name || 'Your partner';
+    const firstName = partnerName.split(' ')[0];
+    const scheduled = swap.scheduledAt ? new Date(swap.scheduledAt) : null;
+    const scheduledText = scheduled
+        ? `${scheduled.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} at ${scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        : '';
+    const canReply = !isSent && (swap.status === 'PENDING' || swap.status === 'MORE_INFO_REQUESTED');
+
+    // One sentence telling the user where this swap stands and what to do next.
+    const nextStep = (() => {
+        switch (swap.status) {
+            case 'PENDING':
+                return isSent
+                    ? `Waiting for ${firstName} to reply. You'll get a notification when they do.`
+                    : `${firstName} wants to swap. Accept one of the suggested times, suggest another, or ask a question first.`;
+            case 'MORE_INFO_REQUESTED':
+                return isSent
+                    ? `${firstName} asked for more details. Reply to them in Messages.`
+                    : `You asked ${firstName} for more details. You can still accept or decline below.`;
+            case 'RESCHEDULED':
+                return 'A new time has been suggested. See the details below.';
+            case 'ACCEPTED':
+                return `Agreed for ${scheduledText || 'a time you both chose'}. At session time, start a video call and the timer, then log what you covered.`;
+            case 'COMPLETED':
+                return swap.rating ? 'Finished and rated. Nice work.' : `Finished. Rate ${firstName} so others know what to expect.`;
+            case 'REJECTED':
+                return 'This request was declined.';
+            case 'CANCELLED':
+                return 'This swap was cancelled.';
+            default:
+                return '';
+        }
+    })();
+
+    const linkBtn = 'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100';
+
     return (
-        <div className="bg-white rounded-2xl p-6 border border-neutral-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col md:flex-row gap-6">
-                <div
-                    className="flex-shrink-0 cursor-pointer group"
-                    onClick={() => onViewProfile?.(partner.id)}
-                >
-                    <div className="w-16 h-16 rounded-2xl bg-neutral-100 flex items-center justify-center text-neutral-700 text-2xl font-black relative overflow-hidden border border-neutral-200/50">
-                        {partner?.profile?.avatarUrl ? (
-                            <img src={partner.profile.avatarUrl} alt="" className="w-full h-full object-cover rounded-2xl group-hover:scale-110 transition-transform" />
-                        ) : (
-                            partner?.name?.charAt(0) || <User className="w-6 h-6 text-neutral-400" />
-                        )}
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <ExternalLink className="w-5 h-5" />
-                        </div>
+        <article className="rounded-lg border border-neutral-200 bg-white p-5">
+            {/* Who and what */}
+            <div className="flex items-start justify-between gap-4">
+                <button onClick={() => onViewProfile?.(partner?.id)} className="flex min-w-0 items-center gap-3 text-left">
+                    {partner?.profile?.avatarUrl ? (
+                        <img src={partner.profile.avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
+                    ) : (
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                            {partnerName.charAt(0).toUpperCase()}
+                        </span>
+                    )}
+                    <span className="min-w-0">
+                        <span className="block truncate font-medium text-neutral-900 hover:underline">{partnerName}</span>
+                        <span className="block truncate text-sm text-neutral-600">
+                            {isSent ? 'You teach' : 'They teach'} <span className="font-medium text-neutral-800">{swap.offeredSkill}</span>
+                            {' · '}
+                            {isSent ? 'you learn' : 'you teach'} <span className="font-medium text-neutral-800">{swap.requestedSkill}</span>
+                        </span>
+                    </span>
+                </button>
+                <StatusBadge status={swap.status} isSent={isSent} />
+            </div>
+
+            {nextStep && <p className="mt-3 text-sm text-neutral-600">{nextStep}</p>}
+
+            {swap.status === 'ACCEPTED' && timeLeft && (
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded bg-primary-50 px-2 py-1 text-xs font-medium text-primary-700">
+                    <Clock className="h-3.5 w-3.5" /> Starts in {timeLeft}
+                </p>
+            )}
+
+            {swap.message && swap.status !== 'RESCHEDULED' && (
+                <blockquote className="mt-3 border-l-2 border-neutral-200 pl-3 text-sm text-neutral-600">“{swap.message}”</blockquote>
+            )}
+
+            {/* Suggested times are always visible for the person who has to choose. */}
+            {(swap.status === 'PENDING' || swap.status === 'MORE_INFO_REQUESTED') && swap.preferredTimeSlots?.length > 0 && (
+                <div className="mt-4">
+                    <p className="text-xs font-medium text-neutral-500">{isSent ? 'Times you suggested' : 'Suggested times'}</p>
+                    <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {swap.preferredTimeSlots.map((slot: string, idx: number) => (
+                            <li key={idx} className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 px-3 py-2 text-sm">
+                                <span className="text-neutral-800">{slot}</span>
+                                {canReply && (
+                                    <button onClick={() => onAccept?.(swap.id, slot)} className="shrink-0 rounded-md bg-primary-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-primary-700">
+                                        Accept this time
+                                    </button>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {swap.status === 'RESCHEDULED' && (() => {
+                const slotData = typeof swap.proposedTimeSlot === 'object' ? swap.proposedTimeSlot : null;
+                const slot = slotData?.slot ?? swap.proposedTimeSlot;
+                const initiatorId = slotData?.initiatorId ? Number(slotData.initiatorId) : null;
+                const isInitiator = initiatorId === Number(currentUser?.id);
+                return (
+                    <div className="mt-4 rounded-md border border-warning-200 bg-warning-50 p-3 text-sm">
+                        <p className="text-neutral-800">
+                            New time suggested: <span className="font-medium">{slot ? new Date(slot).toLocaleString() : 'not set'}</span>
+                        </p>
+                        {swap.message && <p className="mt-1 text-neutral-600">“{swap.message}”</p>}
+                        {swap.meetingAgenda && <p className="mt-1 text-neutral-600">Agenda: {swap.meetingAgenda}</p>}
+                        {initiatorId && !isInitiator ? (
+                            <div className="mt-3 flex gap-2">
+                                <button onClick={() => onAccept?.(swap.id, slot)} className="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700">Accept new time</button>
+                                <button onClick={() => onReject?.(swap.id)} className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50">Decline</button>
+                            </div>
+                        ) : isInitiator ? (
+                            <p className="mt-2 text-xs text-neutral-600">Waiting for {firstName} to respond.</p>
+                        ) : null}
+                    </div>
+                );
+            })()}
+
+            {swap.attachments?.length > 0 && (
+                <div className="mt-4">
+                    <p className="text-xs font-medium text-neutral-500">Shared files</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {swap.attachments.map((att: any) => (
+                            <a key={att.id} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50">
+                                <Paperclip className="h-3.5 w-3.5" /><span className="max-w-[160px] truncate">{att.fileName}</span>
+                            </a>
+                        ))}
                     </div>
                 </div>
+            )}
 
-                <div className="flex-grow">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3
-                                className="text-xl font-bold text-neutral-900 cursor-pointer hover:text-primary-600 transition-colors"
-                                onClick={() => onViewProfile?.(partner.id)}
-                            >{partner?.name}</h3>
-                            <p className="text-sm font-medium text-neutral-500 flex items-center mt-1">
-                                <RefreshCw className="w-3 h-3 mr-1 text-primary-500" />
-                                {swap.offeredSkill} <span className="mx-2 text-neutral-300">→</span> {swap.requestedSkill}
-                            </p>
-                        </div>
-                        <StatusBadge status={swap.status} />
-                    </div>
-
-                    {swap.status === 'ACCEPTED' && timeLeft && (
-                        <div className="mt-2 flex items-center text-xs font-bold text-primary-600 bg-primary-50 w-fit px-2 py-1 rounded-full border border-primary-100 animate-pulse">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Starts in: {timeLeft}
-                        </div>
-                    )}
-
-                    <div className="mt-4 flex flex-wrap gap-4 text-sm text-neutral-600">
-                        {swap.status === 'ACCEPTED' || swap.status === 'COMPLETED' ? (
-                            <div className="flex items-center bg-neutral-50 px-3 py-1.5 rounded-lg border border-neutral-100">
-                                <CalendarIcon className="w-4 h-4 mr-2 text-primary-500" />
-                                {new Date(swap.scheduledAt).toLocaleDateString()} at {new Date(swap.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                        ) : swap.preferredTimeSlots?.length > 0 && (
-                            <div className="w-full">
-                                <button
-                                    onClick={() => setIsSlotsOpen(!isSlotsOpen)}
-                                    className="flex items-center text-primary-600 font-bold hover:underline"
-                                >
-                                    <Clock className="w-4 h-4 mr-2" />
-                                    {swap.preferredTimeSlots.length} Suggested Times
-                                    <ChevronDown className={`ml-1 w-4 h-4 transition-transform ${isSlotsOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                                <AnimatePresence>
-                                    {isSlotsOpen && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="overflow-hidden mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2"
-                                        >
-                                            {swap.preferredTimeSlots.map((slot: string, idx: number) => (
-                                                <div key={idx} className="flex items-center justify-between bg-primary-50/50 p-2 rounded-lg text-xs">
-                                                    <span>{slot}</span>
-                                                    {!isSent && swap.status === 'PENDING' && (
-                                                        <button
-                                                            onClick={() => onAccept?.(swap.id, slot)}
-                                                            className="bg-primary-600 text-white px-2 py-1 rounded font-bold"
-                                                        >
-                                                            Pick Slot
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
+            {/* ---------- Actions ---------- */}
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-4">
+                {canReply && (
+                    <>
+                        <button onClick={() => onReschedule?.(swap.id)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50">Suggest another time</button>
+                        {swap.status === 'PENDING' && (
+                            <button onClick={() => onRequestMoreInfo?.(swap.id)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50">Ask a question</button>
                         )}
-                    </div>
+                        <button onClick={() => onReject?.(swap.id)} className="rounded-md px-3 py-1.5 text-sm font-medium text-error-700 hover:bg-error-50">Decline</button>
+                    </>
+                )}
 
-                    {swap.status === 'RESCHEDULED' && (
-                        <div className="w-full mt-3 bg-orange-50 border border-orange-100 rounded-xl p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                                    <Clock className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-neutral-900 text-sm">Reschedule Proposed</h4>
-                                    <p className="text-xs text-neutral-600 mt-1">
-                                        Proposed time: <span className="font-bold text-neutral-800">
-                                            {(() => {
-                                                const slot = typeof swap.proposedTimeSlot === 'object' && swap.proposedTimeSlot?.slot
-                                                    ? swap.proposedTimeSlot.slot
-                                                    : swap.proposedTimeSlot;
-                                                return slot ? new Date(slot).toLocaleString() : 'N/A';
-                                            })()}
-                                        </span>
-                                    </p>
-                                    {swap.message && (
-                                        <p className="text-xs text-neutral-500 italic mt-1">"{swap.message}"</p>
-                                    )}
-                                    {swap.meetingAgenda && (
-                                        <p className="text-xs text-neutral-600 mt-1"><span className="font-bold">Agenda:</span> {swap.meetingAgenda}</p>
-                                    )}
+                {isSent && swap.status === 'MORE_INFO_REQUESTED' && (
+                    <button onClick={() => onOpenMessages?.(partner)} className="rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700">Reply in Messages</button>
+                )}
 
-                                    {/* Show actions only if current user is NOT the initiator */}
-                                    {(() => {
-                                        const slotData = typeof swap.proposedTimeSlot === 'object' ? swap.proposedTimeSlot : null;
-                                        const initiatorId = slotData?.initiatorId ? Number(slotData.initiatorId) : null;
-                                        const currentUserId = Number(currentUser?.id);
-                                        const isInitiator = initiatorId === currentUserId;
-
-                                        // Debug info (can be removed later)
-                                        // console.log('Reschedule Debug:', { initiatorId, currentUserId, isInitiator });
-
-                                        if (initiatorId && !isInitiator) {
-                                            return (
-                                                <div className="flex gap-2 mt-3">
-                                                    <button
-                                                        onClick={() => onAccept?.(swap.id, slotData?.slot || swap.proposedTimeSlot)}
-                                                        className="px-3 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors"
-                                                    >
-                                                        Accept New Time
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onReject?.(swap.id)}
-                                                        className="px-3 py-1.5 bg-white border border-neutral-200 text-neutral-600 text-xs font-bold rounded-lg hover:bg-neutral-50 transition-colors"
-                                                    >
-                                                        Decline
-                                                    </button>
-                                                </div>
-                                            );
-                                        } else if (isInitiator) {
-                                            return (
-                                                <div className="mt-2 text-xs text-orange-600 font-medium flex items-center">
-                                                    <Clock className="w-3 h-3 mr-1" />
-                                                    Waiting for partner response...
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-
-                    {/* Display Swap Attachments */}
-                    {swap.attachments && swap.attachments.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-neutral-100">
-                            <h4 className="text-xs font-bold text-neutral-400 mb-2 uppercase tracking-wider">Attachments</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {swap.attachments.map((att: any) => (
-                                    <a
-                                        key={att.id}
-                                        href={att.fileUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center text-xs bg-neutral-50 px-3 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-100 transition-colors text-neutral-700"
-                                    >
-                                        <Paperclip className="w-3.5 h-3.5 mr-2 text-primary-500" />
-                                        <span className="truncate max-w-[150px]">{att.fileName}</span>
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {swap.message && (
-                        <div className="mt-4 p-3 bg-neutral-50/50 rounded-xl border-l-4 border-primary-200">
-                            <p className="text-neutral-600 italic text-sm">"{swap.message}"</p>
-                        </div>
-                    )}
-
-                    {swap.status === 'ACCEPTED' && (
-                        <div className="mt-4 pt-4 border-t border-neutral-100 flex items-center justify-between">
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => onOpenChat?.(swap)}
-                                    className="flex items-center text-xs text-neutral-600 hover:text-primary-600"
-                                >
-                                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
-                                    Collab Chat
-                                </button>
-                                <button
-                                    onClick={() => setIsSubmitProgressOpen(true)}
-                                    className="flex items-center text-xs text-neutral-600 hover:text-primary-600"
-                                >
-                                    <FileText className="w-3.5 h-3.5 mr-1" />
-                                    Submit Progress
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (!isReportsOpen) {
-                                            dispatch(fetchReports(swap.id));
-                                        }
-                                        setIsReportsOpen(!isReportsOpen);
-                                    }}
-                                    className="flex items-center text-xs text-neutral-600 hover:text-primary-600"
-                                >
-                                    <Clock className="w-3.5 h-3.5 mr-1" />
-                                    Work History
-                                </button>
-                                <input
-                                    type="file"
-                                    ref={swapFileInputRef}
-                                    onChange={handleSwapAttachment}
-                                    className="hidden"
-                                />
-                                <button
-                                    onClick={() => swapFileInputRef.current?.click()}
-                                    className="flex items-center text-xs text-neutral-600 hover:text-primary-600"
-                                >
-                                    <Paperclip className="w-3.5 h-3.5 mr-1" />
-                                    Attach File
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <AnimatePresence>
-                        {isReportsOpen && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="mt-4 p-4 bg-neutral-50 rounded-xl border border-neutral-100 overflow-hidden"
-                            >
-                                <h4 className="text-xs font-bold text-neutral-400 mb-2 uppercase tracking-wider">Historical Sessions</h4>
-                                <h4 className="text-xs font-bold text-neutral-400 mb-2 uppercase tracking-wider">Historical Sessions & Reports</h4>
-                                <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                    {reports.length === 0 ? (
-                                        <div className="text-[10px] text-neutral-400 text-center py-4">
-                                            No history recorded yet.
-                                        </div>
-                                    ) : (
-                                        reports.map((report: any) => (
-                                            <div key={report.id} className="bg-white p-3 rounded-lg border border-neutral-100 shadow-sm">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <span className="text-xs font-bold text-neutral-700">
-                                                        {report.type === 'DAILY' ? 'Daily Update' : 'Weekly Report'}
-                                                    </span>
-                                                    <span className="text-[10px] text-neutral-400">
-                                                        {new Date(report.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-neutral-600 mb-2">{report.content}</p>
-
-                                                {report.completionPercentage > 0 && (
-                                                    <div className="w-full bg-neutral-100 rounded-full h-1.5 mb-2">
-                                                        <div
-                                                            className="bg-success-500 h-1.5 rounded-full"
-                                                            style={{ width: `${report.completionPercentage}%` }}
-                                                        />
-                                                    </div>
-                                                )}
-
-                                                {report.attachments && report.attachments.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2 mt-2">
-                                                        {(report.attachments as any[]).map((att: any, idx: number) => (
-                                                            <a
-                                                                key={idx}
-                                                                href={att.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center text-[10px] bg-neutral-50 px-2 py-1 rounded border border-neutral-200 hover:bg-neutral-100"
-                                                            >
-                                                                <FileText className="w-3 h-3 mr-1 text-neutral-400" />
-                                                                {att.name}
-                                                            </a>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    <SubmitProgressModal
-                        isOpen={isSubmitProgressOpen}
-                        onClose={() => setIsSubmitProgressOpen(false)}
-                        onSubmit={handleReportSubmit}
-                    />
-                </div>
-
-                <div className="flex flex-col gap-2 min-w-[140px] justify-center">
-                    <button
-                        onClick={() => onViewContract?.(swap)}
-                        className="w-full py-2 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-xl font-semibold transition-all text-xs flex items-center justify-center mb-1"
-                    >
-                        <FileSignature className="w-4 h-4 mr-2 text-neutral-500" />
-                        View Agreement
-                    </button>
-                    {(swap.status === 'PENDING' || swap.status === 'MORE_INFO_REQUESTED') && !isSent && (
-                        <>
-                            <button onClick={() => onAccept?.(swap.id, swap.preferredTimeSlots?.[0])} className="w-full py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all text-xs">Quick Accept</button>
-                            <button
-                                onClick={() => onRequestMoreInfo?.(swap.id)}
-                                className="w-full py-2 bg-white border border-neutral-200 text-neutral-700 rounded-xl font-semibold hover:bg-neutral-50 flex items-center justify-center transition-colors text-xs"
-                            >
-                                <FileText className="w-4 h-4 mr-2" />
-                                Ask Details
-                            </button>
-                            <button onClick={() => onReschedule?.(swap.id)} className="w-full py-2 bg-white border border-neutral-200 text-neutral-700 rounded-xl font-semibold hover:bg-neutral-50 transition-colors text-xs">Reschedule</button>
-                            <button onClick={() => onReject?.(swap.id)} className="w-full py-2 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors text-xs">Reject</button>
-                        </>
-                    )}
-                    {swap.status === 'ACCEPTED' && (
-                        <>
-                            {isCurrentActive ? (
-                                <button
-                                    onClick={handleEndWork}
-                                    className="w-full py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-all flex items-center justify-center mb-2 text-xs"
-                                >
-                                    <Pause className="w-4 h-4 mr-2" />
-                                    Stop Work
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleStartWork}
-                                    className="w-full py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all flex items-center justify-center mb-2 text-xs"
-                                >
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Start Work
-                                </button>
-                            )}
-                            <button
-                                onClick={() => onInviteToMeeting?.(swap)}
-                                className="w-full py-2 bg-primary-50 text-primary-700 rounded-xl font-semibold hover:bg-primary-100 transition-all flex items-center justify-center mb-2 text-xs"
-                            >
-                                <Video className="w-4 h-4 mr-2" />
-                                Invite to Meeting
-                            </button>
-                            <button
-                                onClick={() => window.open(getGoogleCalendarLink(), '_blank')}
-                                className="w-full py-2 bg-white border border-neutral-200 text-neutral-700 rounded-xl font-semibold hover:bg-neutral-50 flex items-center justify-center mb-2 transition-all text-xs"
-                            >
-                                <Calendar className="w-4 h-4 mr-2" />
-                                Add to Calendar
-                            </button>
-                            <button onClick={() => onComplete?.(swap.id)} className="w-full py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-all text-xs">Mark Completed</button>
-                        </>
-                    )}
-                    {swap.status === 'COMPLETED' && !swap.rating && (
-                        <button onClick={() => onRate?.(swap)} className="w-full py-2 bg-white border border-amber-200 text-amber-700 rounded-xl font-semibold hover:bg-amber-50 flex items-center justify-center text-xs">
-                            <Star className="w-4 h-4 mr-2" />
-                            Rate Partner
+                {swap.status === 'ACCEPTED' && (
+                    <>
+                        <button onClick={() => onInviteToMeeting?.(swap)} className="inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700">
+                            <Video className="h-4 w-4" /> Start video call
                         </button>
+                        {isCurrentActive ? (
+                            <button onClick={handleEndWork} className="inline-flex items-center gap-1.5 rounded-md border border-error-300 px-3 py-1.5 text-sm font-medium text-error-700 hover:bg-error-50">
+                                <Pause className="h-4 w-4" /> Stop session timer
+                            </button>
+                        ) : (
+                            <button onClick={handleStartWork} className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+                                <Play className="h-4 w-4" /> Start session timer
+                            </button>
+                        )}
+                        <button onClick={() => setIsSubmitProgressOpen(true)} className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+                            <FileText className="h-4 w-4" /> Log progress
+                        </button>
+                    </>
+                )}
+
+                {swap.status === 'COMPLETED' && !swap.rating && (
+                    <button onClick={() => onRate?.(swap)} className="inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700">
+                        <Star className="h-4 w-4" /> Rate {firstName}
+                    </button>
+                )}
+
+                {/* Secondary tools, always in the same place */}
+                <div className="ml-auto flex flex-wrap items-center gap-1">
+                    {swap.status === 'ACCEPTED' && (
+                        <>
+                            <button onClick={() => onOpenChat?.(swap)} className={linkBtn}><MessageSquare className="h-4 w-4" /> Chat</button>
+                            <button
+                                onClick={() => { if (!isReportsOpen) dispatch(fetchReports(swap.id)); setIsReportsOpen(!isReportsOpen); }}
+                                className={linkBtn}
+                                aria-expanded={isReportsOpen}
+                            >
+                                <Clock className="h-4 w-4" /> History
+                            </button>
+                            <input type="file" ref={swapFileInputRef} onChange={handleSwapAttachment} className="hidden" />
+                            <button onClick={() => swapFileInputRef.current?.click()} className={linkBtn}><Paperclip className="h-4 w-4" /> Attach</button>
+                            {scheduled && (
+                                <a href={getGoogleCalendarLink()} target="_blank" rel="noreferrer" className={linkBtn}><Calendar className="h-4 w-4" /> Add to calendar</a>
+                            )}
+                        </>
+                    )}
+                    <button onClick={() => onViewContract?.(swap)} className={linkBtn}><FileSignature className="h-4 w-4" /> Agreement</button>
+                    {swap.status === 'ACCEPTED' && (
+                        <button onClick={() => onComplete?.(swap.id)} className={`${linkBtn} text-success-700`}><CheckCircle2 className="h-4 w-4" /> Mark complete</button>
                     )}
                 </div>
             </div>
-        </div >
+
+            {isReportsOpen && (
+                <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
+                    <h4 className="text-sm font-medium text-neutral-900">Progress history</h4>
+                    <div className="mt-3 max-h-60 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
+                        {reports.length === 0 ? (
+                            <p className="text-sm text-neutral-500">Nothing logged yet. Use “Log progress” after a session.</p>
+                        ) : (
+                            reports.map((report: any) => (
+                                <div key={report.id} className="rounded-md border border-neutral-200 bg-white p-3">
+                                    <div className="flex items-center justify-between text-xs text-neutral-500">
+                                        <span className="font-medium text-neutral-700">{report.type === 'DAILY' ? 'Daily update' : 'Weekly report'}</span>
+                                        <span>{new Date(report.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    <p className="mt-1 text-sm text-neutral-700">{report.content}</p>
+                                    {report.completionPercentage > 0 && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <div className="h-1.5 flex-1 rounded-full bg-neutral-100">
+                                                <div className="h-1.5 rounded-full bg-success-500" style={{ width: `${report.completionPercentage}%` }} />
+                                            </div>
+                                            <span className="text-xs text-neutral-500">{report.completionPercentage}%</span>
+                                        </div>
+                                    )}
+                                    {report.attachments?.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {(report.attachments as any[]).map((att: any, idx: number) => (
+                                                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded border border-neutral-200 px-2 py-1 text-xs text-neutral-700 hover:bg-neutral-50">
+                                                    <FileText className="h-3 w-3" />{att.name}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <SubmitProgressModal
+                isOpen={isSubmitProgressOpen}
+                onClose={() => setIsSubmitProgressOpen(false)}
+                onSubmit={handleReportSubmit}
+            />
+        </article>
     );
 }
 
-function StatusBadge({ status }: { status: string }) {
-    const colors: any = {
-        PENDING: 'bg-warning-100 text-warning-700',
-        ACCEPTED: 'bg-success-100 text-success-700',
-        REJECTED: 'bg-error-100 text-error-700',
-        COMPLETED: 'bg-primary-100 text-primary-700',
-        RESCHEDULED: 'bg-accent-100 text-accent-700',
-        MORE_INFO_REQUESTED: 'bg-orange-100 text-orange-700',
-    };
-    return (
-        <span className={`text-[10px] font-black px-2 py-1 rounded-md tracking-wider ${colors[status] || 'bg-neutral-100'}`}>
-            {status}
-        </span>
-    );
+const statusLabels: Record<string, { label: string; className: string }> = {
+    PENDING: { label: 'Waiting for reply', className: 'bg-warning-50 text-warning-700' },
+    MORE_INFO_REQUESTED: { label: 'Question asked', className: 'bg-warning-50 text-warning-700' },
+    RESCHEDULED: { label: 'New time suggested', className: 'bg-warning-50 text-warning-700' },
+    ACCEPTED: { label: 'In progress', className: 'bg-primary-50 text-primary-700' },
+    COMPLETED: { label: 'Completed', className: 'bg-success-50 text-success-700' },
+    REJECTED: { label: 'Declined', className: 'bg-neutral-100 text-neutral-600' },
+    CANCELLED: { label: 'Cancelled', className: 'bg-neutral-100 text-neutral-600' },
+};
+
+function StatusBadge({ status, isSent }: { status: string; isSent?: boolean }) {
+    const entry = statusLabels[status] ?? { label: status.toLowerCase().replace(/_/g, ' '), className: 'bg-neutral-100 text-neutral-600' };
+    const label = status === 'PENDING' && !isSent ? 'Needs your reply' : entry.label;
+    return <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${entry.className}`}>{label}</span>;
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({ message, hint, actionLabel, onAction }: { message: string; hint?: string; actionLabel?: string; onAction?: () => void }) {
     return (
-        <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-neutral-200">
-            <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CalendarIcon className="w-8 h-8 text-neutral-300" />
-            </div>
-            <p className="text-neutral-400 font-medium">{message}</p>
+        <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center">
+            <p className="font-medium text-neutral-900">{message}</p>
+            {hint && <p className="mx-auto mt-1 max-w-md text-sm text-neutral-600">{hint}</p>}
+            {actionLabel && onAction && (
+                <button onClick={onAction} className="mt-4 rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+                    {actionLabel}
+                </button>
+            )}
         </div>
     );
 }

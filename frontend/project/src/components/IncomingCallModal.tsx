@@ -61,7 +61,7 @@ export default function IncomingCallModal() {
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.8, opacity: 0, y: 20 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className="relative w-full max-w-sm bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 rounded-3xl p-8 shadow-2xl border border-neutral-700/50"
+                    className="relative w-full max-w-sm bg-neutral-900 rounded-xl p-8 shadow-lg border border-neutral-700/50"
                 >
                     {/* Close button */}
                     <button
@@ -87,7 +87,7 @@ export default function IncomingCallModal() {
                             />
 
                             {/* Avatar */}
-                            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg">
+                            <div className="relative w-24 h-24 rounded-full bg-primary-500 flex items-center justify-center text-4xl font-bold text-white shadow-lg">
                                 {incomingCallData.callerAvatar ? (
                                     <img
                                         src={incomingCallData.callerAvatar}
@@ -148,7 +148,7 @@ export default function IncomingCallModal() {
                             onClick={handleReject}
                             className="group relative"
                         >
-                            <div className="w-16 h-16 rounded-full bg-error-500 hover:bg-error-600 flex items-center justify-center shadow-lg shadow-error-500/30 transition">
+                            <div className="w-16 h-16 rounded-full bg-error-500 hover:bg-error-600 flex items-center justify-center shadow-lg transition">
                                 <PhoneOff className="w-7 h-7 text-white" />
                             </div>
                             <span className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 text-sm text-neutral-400 whitespace-nowrap">

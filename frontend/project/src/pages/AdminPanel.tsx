@@ -130,22 +130,22 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'OPEN': return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'UNDER_REVIEW': return 'bg-amber-100 text-amber-700 border-amber-200';
-            case 'ESCALATED': return 'bg-orange-100 text-orange-700 border-orange-200';
-            case 'RESOLVED': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-            case 'DISMISSED': return 'bg-gray-100 text-gray-600 border-gray-200';
-            default: return 'bg-gray-100 text-gray-600 border-gray-200';
+            case 'OPEN': return 'bg-primary-100 text-primary-700 border-primary-200';
+            case 'UNDER_REVIEW': return 'bg-warning-100 text-warning-700 border-warning-200';
+            case 'ESCALATED': return 'bg-warning-100 text-warning-700 border-warning-200';
+            case 'RESOLVED': return 'bg-success-100 text-success-700 border-success-200';
+            case 'DISMISSED': return 'bg-neutral-100 text-neutral-600 border-neutral-200';
+            default: return 'bg-neutral-100 text-neutral-600 border-neutral-200';
         }
     };
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'URGENT': return 'bg-red-100 text-red-700';
-            case 'HIGH': return 'bg-orange-100 text-orange-700';
-            case 'MEDIUM': return 'bg-yellow-100 text-yellow-700';
-            case 'LOW': return 'bg-green-100 text-green-700';
-            default: return 'bg-gray-100 text-gray-600';
+            case 'URGENT': return 'bg-error-100 text-error-700';
+            case 'HIGH': return 'bg-warning-100 text-warning-700';
+            case 'MEDIUM': return 'bg-warning-100 text-warning-700';
+            case 'LOW': return 'bg-success-100 text-success-700';
+            default: return 'bg-neutral-100 text-neutral-600';
         }
     };
 
@@ -160,58 +160,58 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
 
     // ─── OVERVIEW ───
     const renderOverview = () => {
-        if (!overview) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>;
+        if (!overview) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>;
         const stats = [
-            { label: 'Total Users', value: overview.totalUsers, icon: Users, color: 'bg-blue-500' },
-            { label: 'Active Users', value: overview.activeUsers, icon: CheckCircle2, color: 'bg-emerald-500' },
-            { label: 'Suspended', value: overview.suspendedUsers, icon: UserX, color: 'bg-red-500' },
-            { label: 'New This Week', value: overview.newUsersThisWeek, icon: TrendingUp, color: 'bg-violet-500' },
-            { label: 'Portfolios', value: overview.totalPortfolios, icon: Briefcase, color: 'bg-amber-500' },
-            { label: 'Certificates', value: overview.totalCertifications, icon: Award, color: 'bg-cyan-500' },
-            { label: 'Pending Certs', value: overview.pendingCertifications, icon: Clock, color: 'bg-orange-500' },
-            { label: 'Open Complaints', value: overview.openComplaints, icon: AlertTriangle, color: 'bg-rose-500' },
-            { label: 'Total Swaps', value: overview.totalSwaps, icon: FileText, color: 'bg-indigo-500' },
-            { label: 'Completed Swaps', value: overview.completedSwaps, icon: CheckCircle2, color: 'bg-teal-500' },
+            { label: 'Total Users', value: overview.totalUsers, icon: Users, color: 'bg-primary-500' },
+            { label: 'Active Users', value: overview.activeUsers, icon: CheckCircle2, color: 'bg-success-500' },
+            { label: 'Suspended', value: overview.suspendedUsers, icon: UserX, color: 'bg-error-500' },
+            { label: 'New This Week', value: overview.newUsersThisWeek, icon: TrendingUp, color: 'bg-primary-500' },
+            { label: 'Portfolios', value: overview.totalPortfolios, icon: Briefcase, color: 'bg-warning-500' },
+            { label: 'Certificates', value: overview.totalCertifications, icon: Award, color: 'bg-primary-500' },
+            { label: 'Pending Certs', value: overview.pendingCertifications, icon: Clock, color: 'bg-warning-500' },
+            { label: 'Open Complaints', value: overview.openComplaints, icon: AlertTriangle, color: 'bg-error-500' },
+            { label: 'Total Swaps', value: overview.totalSwaps, icon: FileText, color: 'bg-primary-500' },
+            { label: 'Completed Swaps', value: overview.completedSwaps, icon: CheckCircle2, color: 'bg-primary-500' },
         ];
         return (
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Dashboard Overview</h2>
+                <p className="text-sm text-neutral-600 mb-6">Platform numbers at a glance.</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {stats.map((s, i) => (
-                        <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                            className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                            <div className={`w-10 h-10 ${s.color} rounded-lg flex items-center justify-center mb-3`}>
-                                <s.icon className="w-5 h-5 text-white" />
+                        <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
+                            className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-neutral-100">
+                                <s.icon className="h-4 w-4 text-neutral-600" />
                             </div>
-                            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                            <p className="text-xs text-gray-500 font-medium mt-1">{s.label}</p>
+                            <p className="text-2xl font-bold text-neutral-900">{s.value}</p>
+                            <p className="text-xs text-neutral-500 font-medium mt-1">{s.label}</p>
                         </motion.div>
                     ))}
                 </div>
 
                 {overview.serverHealth && (
                     <div className="mt-8">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Site Health & Infrastructure</h2>
+                        <h2 className="mb-4 text-base font-semibold text-neutral-900">Server health</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                                <p className="text-sm text-gray-500 font-medium mb-1">Memory Usage</p>
-                                <p className="text-xl font-bold text-gray-900">{overview.serverHealth.usedMemoryPercent}</p>
-                                <p className="text-xs text-gray-400 mt-1">{overview.serverHealth.freeMemory} free of {overview.serverHealth.totalMemory}</p>
+                            <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+                                <p className="text-sm text-neutral-500 font-medium mb-1">Memory Usage</p>
+                                <p className="text-xl font-bold text-neutral-900">{overview.serverHealth.usedMemoryPercent}</p>
+                                <p className="text-xs text-neutral-400 mt-1">{overview.serverHealth.freeMemory} free of {overview.serverHealth.totalMemory}</p>
                             </div>
-                            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                                <p className="text-sm text-gray-500 font-medium mb-1">CPU Load</p>
-                                <p className="text-xl font-bold text-gray-900">{overview.serverHealth.cpuLoad}</p>
-                                <p className="text-xs text-gray-400 mt-1">1-minute load average</p>
+                            <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+                                <p className="text-sm text-neutral-500 font-medium mb-1">CPU Load</p>
+                                <p className="text-xl font-bold text-neutral-900">{overview.serverHealth.cpuLoad}</p>
+                                <p className="text-xs text-neutral-400 mt-1">1-minute load average</p>
                             </div>
-                            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                                <p className="text-sm text-gray-500 font-medium mb-1">Server Uptime</p>
-                                <p className="text-xl font-bold text-gray-900">{overview.serverHealth.uptime}</p>
-                                <p className="text-xs text-gray-400 mt-1">Continuous operation</p>
+                            <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+                                <p className="text-sm text-neutral-500 font-medium mb-1">Server Uptime</p>
+                                <p className="text-xl font-bold text-neutral-900">{overview.serverHealth.uptime}</p>
+                                <p className="text-xs text-neutral-400 mt-1">Continuous operation</p>
                             </div>
-                            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                                <p className="text-sm text-gray-500 font-medium mb-1">Platform</p>
-                                <p className="text-xl font-bold text-gray-900 capitalize">{overview.serverHealth.platform}</p>
-                                <p className="text-xs text-gray-400 mt-1">{overview.serverHealth.architecture} architecture</p>
+                            <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+                                <p className="text-sm text-neutral-500 font-medium mb-1">Platform</p>
+                                <p className="text-xl font-bold text-neutral-900 capitalize">{overview.serverHealth.platform}</p>
+                                <p className="text-xs text-neutral-400 mt-1">{overview.serverHealth.architecture} architecture</p>
                             </div>
                         </div>
                     </div>
@@ -224,44 +224,44 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
     const renderUsers = () => (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Manage Users</h2>
+                <p className="text-sm text-neutral-600">Search accounts, and suspend or remove people who break the rules.</p>
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                     <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                        className="pl-10 pr-4 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
                 </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
                 <table className="w-full">
-                    <thead><tr className="bg-gray-50 border-b border-gray-100">
+                    <thead><tr className="bg-neutral-50 border-b border-neutral-100">
                         {['User', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map(h => (
-                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">{h}</th>
                         ))}
                     </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-neutral-50">
                         {(users?.users || []).map((u: any) => (
-                            <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                            <tr key={u.id} className="hover:bg-neutral-50 transition-colors">
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm">
                                             {u.profile?.avatarUrl ? <img src={u.profile.avatarUrl} className="w-8 h-8 rounded-full object-cover" /> : u.name?.charAt(0)}
                                         </div>
-                                        <span className="font-medium text-gray-900 text-sm">{u.name}</span>
+                                        <span className="font-medium text-neutral-900 text-sm">{u.name}</span>
                                     </div>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{u.email}</td>
-                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-xs font-semibold ${u.role === 'ADMIN' ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-600'}`}>{u.role}</span></td>
-                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-xs font-semibold ${u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{u.status}</span></td>
-                                <td className="px-4 py-3 text-sm text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                <td className="px-4 py-3 text-sm text-neutral-600">{u.email}</td>
+                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-xs font-semibold ${u.role === 'ADMIN' ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'}`}>{u.role}</span></td>
+                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-xs font-semibold ${u.status === 'ACTIVE' ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'}`}>{u.status}</span></td>
+                                <td className="px-4 py-3 text-sm text-neutral-500">{new Date(u.createdAt).toLocaleDateString()}</td>
                                 <td className="px-4 py-3">
                                     {u.role !== 'ADMIN' && (
                                         <div className="flex gap-2">
                                             <button onClick={() => setConfirmAction({ type: 'suspendUser', id: u.id, label: `${u.status === 'SUSPENDED' ? 'Reactivate' : 'Suspend'} ${u.name}?` })}
-                                                className={`p-1.5 rounded-lg transition-colors ${u.status === 'SUSPENDED' ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}>
+                                                className={`p-1.5 rounded-lg transition-colors ${u.status === 'SUSPENDED' ? 'bg-success-50 text-success-600 hover:bg-success-100' : 'bg-warning-50 text-warning-600 hover:bg-warning-100'}`}>
                                                 <Ban className="w-4 h-4" />
                                             </button>
                                             <button onClick={() => setConfirmAction({ type: 'deleteUser', id: u.id, label: `Delete ${u.name}? This cannot be undone.` })}
-                                                className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                                className="p-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                                         </div>
                                     )}
                                 </td>
@@ -269,7 +269,7 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                         ))}
                     </tbody>
                 </table>
-                {(!users?.users || users.users.length === 0) && <p className="text-center py-8 text-gray-400">No users found</p>}
+                {(!users?.users || users.users.length === 0) && <p className="text-center py-8 text-neutral-400">No users found</p>}
             </div>
         </div>
     );
@@ -278,39 +278,39 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
     const renderPortfolios = () => (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Manage Portfolios</h2>
+                <p className="text-sm text-neutral-600">Review portfolio items and remove anything inappropriate.</p>
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                     <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                        className="pl-10 pr-4 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(portfolios?.portfolios || []).map((p: any) => (
-                    <div key={p.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div key={p.id} className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
                         {p.mediaUrl && <img src={p.mediaUrl} className="w-full h-40 object-cover" alt={p.title} />}
                         <div className="p-4">
-                            <h3 className="font-bold text-gray-900">{p.title}</h3>
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{p.description}</p>
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                            <h3 className="font-bold text-neutral-900">{p.title}</h3>
+                            <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{p.description}</p>
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-50">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
+                                    <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 text-xs font-bold">
                                         {p.user?.name?.charAt(0)}
                                     </div>
-                                    <span className="text-xs text-gray-600">{p.user?.name}</span>
+                                    <span className="text-xs text-neutral-600">{p.user?.name}</span>
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => setViewDetails({ type: 'portfolio', data: p })} title="View Details"
-                                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"><Eye className="w-4 h-4" /></button>
+                                        className="p-1.5 rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors"><Eye className="w-4 h-4" /></button>
                                     <button onClick={() => setConfirmAction({ type: 'deletePortfolio', id: p.id, label: `Delete portfolio "${p.title}"?` })} title="Delete Portfolio"
-                                        className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                        className="p-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
-            {(!portfolios?.portfolios || portfolios.portfolios.length === 0) && <p className="text-center py-12 text-gray-400">No portfolios found</p>}
+            {(!portfolios?.portfolios || portfolios.portfolios.length === 0) && <p className="text-center py-12 text-neutral-400">No portfolios found</p>}
         </div>
     );
 
@@ -318,59 +318,59 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
     const renderCertifications = () => (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Manage Certificates</h2>
+                <p className="text-sm text-neutral-600">Approve or reject certificates members have submitted.</p>
                 <div className="flex gap-2">
                     {['', 'PENDING', 'VERIFIED', 'REJECTED'].map(f => (
                         <button key={f} onClick={() => setCertFilter(f)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${certFilter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${certFilter === f ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
                             {f || 'All'}
                         </button>
                     ))}
                 </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
                 <table className="w-full">
-                    <thead><tr className="bg-gray-50 border-b border-gray-100">
+                    <thead><tr className="bg-neutral-50 border-b border-neutral-100">
                         {['Skill', 'User', 'Platform', 'Type', 'Status', 'Issued', 'Actions'].map(h => (
-                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">{h}</th>
                         ))}
                     </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-neutral-50">
                         {(certifications?.certifications || []).map((c: any) => (
-                            <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-4 py-3 font-medium text-gray-900 text-sm">{c.skillName}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{c.user?.name}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{c.platformName || c.provider || 'SkillHub'}</td>
-                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-xs font-semibold ${c.swapRequestId ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{c.swapRequestId ? 'Swap' : 'External'}</span></td>
+                            <tr key={c.id} className="hover:bg-neutral-50 transition-colors">
+                                <td className="px-4 py-3 font-medium text-neutral-900 text-sm">{c.skillName}</td>
+                                <td className="px-4 py-3 text-sm text-neutral-600">{c.user?.name}</td>
+                                <td className="px-4 py-3 text-sm text-neutral-600">{c.platformName || c.provider || 'SkillHub'}</td>
+                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-xs font-semibold ${c.swapRequestId ? 'bg-primary-100 text-primary-700' : 'bg-primary-100 text-primary-700'}`}>{c.swapRequestId ? 'Swap' : 'External'}</span></td>
                                 <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 rounded-md text-xs font-semibold ${c.verificationStatus === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : c.verificationStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                    <span className={`px-2 py-1 rounded-md text-xs font-semibold ${c.verificationStatus === 'VERIFIED' ? 'bg-success-100 text-success-700' : c.verificationStatus === 'PENDING' ? 'bg-warning-100 text-warning-700' : 'bg-error-100 text-error-700'}`}>
                                         {c.verificationStatus}
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-500">{new Date(c.issuedAt).toLocaleDateString()}</td>
+                                <td className="px-4 py-3 text-sm text-neutral-500">{new Date(c.issuedAt).toLocaleDateString()}</td>
                                 <td className="px-4 py-3">
                                     <div className="flex gap-2">
                                         <button onClick={() => setViewDetails({ type: 'certification', data: c })} title="View Details"
-                                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1">
+                                            className="p-1.5 rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 flex items-center gap-1">
                                             <Eye className="w-4 h-4" /><span className="text-xs font-semibold hidden md:inline">View</span>
                                         </button>
                                         {c.verificationStatus === 'PENDING' && (
                                             <>
                                                 <button onClick={() => setConfirmAction({ type: 'verifyCert', id: c.id, extra: 'VERIFIED', label: `Verify certificate for "${c.skillName}"?` })} title="Verify"
-                                                    className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><CheckCircle2 className="w-4 h-4" /></button>
+                                                    className="p-1.5 rounded-lg bg-success-50 text-success-600 hover:bg-success-100"><CheckCircle2 className="w-4 h-4" /></button>
                                                 <button onClick={() => setConfirmAction({ type: 'verifyCert', id: c.id, extra: 'REJECTED', label: `Reject certificate for "${c.skillName}"?` })} title="Reject"
-                                                    className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100"><XCircle className="w-4 h-4" /></button>
+                                                    className="p-1.5 rounded-lg bg-warning-50 text-warning-600 hover:bg-warning-100"><XCircle className="w-4 h-4" /></button>
                                             </>
                                         )}
                                         <button onClick={() => setConfirmAction({ type: 'deleteCert', id: c.id, label: `Delete certificate "${c.skillName}"?` })} title="Delete"
-                                            className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+                                            className="p-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                {(!certifications?.certifications || certifications.certifications.length === 0) && <p className="text-center py-8 text-gray-400">No certificates found</p>}
+                {(!certifications?.certifications || certifications.certifications.length === 0) && <p className="text-center py-8 text-neutral-400">No certificates found</p>}
             </div>
         </div>
     );
@@ -379,88 +379,88 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
     const renderCourses = () => (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Manage Courses</h2>
-                <button onClick={() => setShowCourseModal(true)} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors">
+                <p className="text-sm text-neutral-600">Add or remove the courses members can enrol in.</p>
+                <button onClick={() => setShowCourseModal(true)} className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 transition-colors">
                     <Plus className="w-4 h-4 mr-2" />Add Course
                 </button>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
                 <table className="w-full">
-                    <thead><tr className="bg-gray-50 border-b border-gray-100">
+                    <thead><tr className="bg-neutral-50 border-b border-neutral-100">
                         {['Title', 'Level', 'Hours', 'Skills', 'Actions'].map(h => (
-                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">{h}</th>
                         ))}
                     </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-neutral-50">
                         {(courses || []).map((c: any) => (
-                            <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-4 py-3 font-medium text-gray-900 text-sm">
+                            <tr key={c.id} className="hover:bg-neutral-50 transition-colors">
+                                <td className="px-4 py-3 font-medium text-neutral-900 text-sm">
                                     <div className="flex items-center">
                                         {c.imageUrl && <img src={c.imageUrl} alt={c.title} className="w-10 h-10 rounded-lg object-cover mr-3" />}
                                         <div>
                                             {c.title}
-                                            <p className="text-xs text-gray-500 font-normal">{c.description.slice(0, 50)}...</p>
+                                            <p className="text-xs text-neutral-500 font-normal">{c.description.slice(0, 50)}...</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-600"><span className="px-2 py-1 bg-gray-100 rounded-md text-xs font-semibold">{c.level}</span></td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{c.hours}h</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 max-w-[150px] truncate">{c.skills}</td>
+                                <td className="px-4 py-3 text-sm text-neutral-600"><span className="px-2 py-1 bg-neutral-100 rounded-md text-xs font-semibold">{c.level}</span></td>
+                                <td className="px-4 py-3 text-sm text-neutral-600">{c.hours}h</td>
+                                <td className="px-4 py-3 text-sm text-neutral-600 max-w-[150px] truncate">{c.skills}</td>
                                 <td className="px-4 py-3">
                                     <button onClick={() => setConfirmAction({ type: 'deleteCourse', id: c.id, label: `Delete course "${c.title}"?` })}
-                                        className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                        className="p-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                {(!courses || courses.length === 0) && <p className="text-center py-12 text-gray-400">No courses found</p>}
+                {(!courses || courses.length === 0) && <p className="text-center py-12 text-neutral-400">No courses found</p>}
             </div>
 
             {/* Add Course Modal */}
             {showCourseModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+                    <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-lg">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-gray-900">Add New Course</h3>
-                            <button onClick={() => setShowCourseModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><XCircle className="w-5 h-5 text-gray-400" /></button>
+                            <h3 className="text-xl font-bold text-neutral-900">Add New Course</h3>
+                            <button onClick={() => setShowCourseModal(false)} className="p-2 hover:bg-neutral-100 rounded-full"><XCircle className="w-5 h-5 text-neutral-400" /></button>
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
-                                <input type="text" value={courseForm.title} onChange={e => setCourseForm({ ...courseForm, title: e.target.value })} className="w-full p-2 border border-gray-200 rounded-lg" />
+                                <label className="block text-sm font-bold text-neutral-700 mb-1">Title</label>
+                                <input type="text" value={courseForm.title} onChange={e => setCourseForm({ ...courseForm, title: e.target.value })} className="w-full p-2 border border-neutral-200 rounded-lg" />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
-                                <textarea value={courseForm.description} onChange={e => setCourseForm({ ...courseForm, description: e.target.value })} className="w-full p-2 border border-gray-200 rounded-lg" rows={3}></textarea>
+                                <label className="block text-sm font-bold text-neutral-700 mb-1">Description</label>
+                                <textarea value={courseForm.description} onChange={e => setCourseForm({ ...courseForm, description: e.target.value })} className="w-full p-2 border border-neutral-200 rounded-lg" rows={3}></textarea>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Level</label>
-                                    <select value={courseForm.level} onChange={e => setCourseForm({ ...courseForm, level: e.target.value })} className="w-full p-2 border border-gray-200 rounded-lg">
+                                    <label className="block text-sm font-bold text-neutral-700 mb-1">Level</label>
+                                    <select value={courseForm.level} onChange={e => setCourseForm({ ...courseForm, level: e.target.value })} className="w-full p-2 border border-neutral-200 rounded-lg">
                                         <option value="BEGINNER">Beginner</option>
                                         <option value="INTERMEDIATE">Intermediate</option>
                                         <option value="ADVANCED">Advanced</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Hours</label>
-                                    <input type="number" value={courseForm.hours} onChange={e => setCourseForm({ ...courseForm, hours: e.target.value })} className="w-full p-2 border border-gray-200 rounded-lg" />
+                                    <label className="block text-sm font-bold text-neutral-700 mb-1">Hours</label>
+                                    <input type="number" value={courseForm.hours} onChange={e => setCourseForm({ ...courseForm, hours: e.target.value })} className="w-full p-2 border border-neutral-200 rounded-lg" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Skills (comma separated)</label>
-                                <input type="text" value={courseForm.skills} onChange={e => setCourseForm({ ...courseForm, skills: e.target.value })} placeholder="React, Node, etc." className="w-full p-2 border border-gray-200 rounded-lg" />
+                                <label className="block text-sm font-bold text-neutral-700 mb-1">Skills (comma separated)</label>
+                                <input type="text" value={courseForm.skills} onChange={e => setCourseForm({ ...courseForm, skills: e.target.value })} placeholder="React, Node, etc." className="w-full p-2 border border-neutral-200 rounded-lg" />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Image URL</label>
-                                <input type="url" value={courseForm.imageUrl} onChange={e => setCourseForm({ ...courseForm, imageUrl: e.target.value })} className="w-full p-2 border border-gray-200 rounded-lg" />
+                                <label className="block text-sm font-bold text-neutral-700 mb-1">Image URL</label>
+                                <input type="url" value={courseForm.imageUrl} onChange={e => setCourseForm({ ...courseForm, imageUrl: e.target.value })} className="w-full p-2 border border-neutral-200 rounded-lg" />
                             </div>
                             <button onClick={() => {
                                 dispatch(createCourse(courseForm));
                                 setShowCourseModal(false);
                                 setCourseForm({ title: '', description: '', level: 'BEGINNER', hours: '', imageUrl: '', skills: '' });
-                            }} disabled={!courseForm.title || !courseForm.hours || !courseForm.skills} className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50">
+                            }} disabled={!courseForm.title || !courseForm.hours || !courseForm.skills} className="w-full py-3 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 disabled:opacity-50">
                                 Create Course
                             </button>
                         </div>
@@ -474,11 +474,11 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
     const renderComplaints = () => (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Reports & Complaints</h2>
+                <p className="text-sm text-neutral-600">Reports members have filed about posts and people.</p>
                 <div className="flex gap-2">
                     {['', 'OPEN', 'RESOLVED', 'DISMISSED'].map(f => (
                         <button key={f} onClick={() => setComplaintFilter(f)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${complaintFilter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${complaintFilter === f ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
                             {f || 'All'}
                         </button>
                     ))}
@@ -486,16 +486,16 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             </div>
             <div className="space-y-3">
                 {(complaints?.complaints || []).map((c: any) => (
-                    <div key={c.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                    <div key={c.id} className="bg-white rounded-xl border border-neutral-100 shadow-sm p-5">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <span className={`px-2 py-1 rounded-md text-xs font-semibold ${c.status === 'OPEN' ? 'bg-red-100 text-red-700' : c.status === 'RESOLVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{c.status}</span>
-                                    <span className="text-xs text-gray-400">{new Date(c.createdAt).toLocaleDateString()}</span>
+                                    <span className={`px-2 py-1 rounded-md text-xs font-semibold ${c.status === 'OPEN' ? 'bg-error-100 text-error-700' : c.status === 'RESOLVED' ? 'bg-success-100 text-success-700' : 'bg-neutral-100 text-neutral-600'}`}>{c.status}</span>
+                                    <span className="text-xs text-neutral-400">{new Date(c.createdAt).toLocaleDateString()}</span>
                                 </div>
-                                <h3 className="font-bold text-gray-900">{c.subject}</h3>
-                                <p className="text-sm text-gray-600 mt-1">{c.description}</p>
-                                <div className="flex gap-4 mt-3 text-xs text-gray-500">
+                                <h3 className="font-bold text-neutral-900">{c.subject}</h3>
+                                <p className="text-sm text-neutral-600 mt-1">{c.description}</p>
+                                <div className="flex gap-4 mt-3 text-xs text-neutral-500">
                                     <span>From: <strong>{c.sender?.name || 'Unknown'}</strong></span>
                                     {c.target && <span>Against: <strong>{c.target?.name}</strong></span>}
                                     {c.post && <span>Post: <strong>{c.post.title}</strong></span>}
@@ -505,14 +505,14 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                 {c.status === 'OPEN' && (
                                     <div className="flex gap-2">
                                         <button onClick={() => setConfirmAction({ type: 'resolveComplaint', id: c.id, extra: 'RESOLVED', label: 'Mark as resolved?' })}
-                                            className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-semibold hover:bg-emerald-100">Resolve</button>
+                                            className="px-3 py-1.5 bg-success-50 text-success-600 rounded-lg text-xs font-semibold hover:bg-success-100">Resolve</button>
                                         <button onClick={() => setConfirmAction({ type: 'resolveComplaint', id: c.id, extra: 'DISMISSED', label: 'Dismiss this complaint?' })}
-                                            className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200">Dismiss</button>
+                                            className="px-3 py-1.5 bg-neutral-100 text-neutral-600 rounded-lg text-xs font-semibold hover:bg-neutral-200">Dismiss</button>
                                     </div>
                                 )}
                                 {c.post && (
                                     <button onClick={() => setConfirmAction({ type: 'deletePost', id: c.post.id, label: `Delete reported post "${c.post.title}"?` })}
-                                        className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 flex items-center gap-1 mt-1">
+                                        className="px-3 py-1.5 bg-error-50 text-error-600 rounded-lg text-xs font-semibold hover:bg-error-100 flex items-center gap-1 mt-1">
                                         <Trash2 className="w-3 h-3" /> Delete Post
                                     </button>
                                 )}
@@ -520,7 +520,7 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                         </div>
                     </div>
                 ))}
-                {(!complaints?.complaints || complaints.complaints.length === 0) && <p className="text-center py-12 text-gray-400">No complaints found</p>}
+                {(!complaints?.complaints || complaints.complaints.length === 0) && <p className="text-center py-12 text-neutral-400">No complaints found</p>}
             </div>
         </div>
     );
@@ -529,38 +529,38 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
     const renderJobs = () => (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Automated Jobs Logs</h2>
+                <p className="text-sm text-neutral-600">Results of scheduled background tasks such as matching and reminders.</p>
                 <div className="flex gap-2">
-                    <span className="text-sm text-gray-500 mt-2">Monitoring server and matching tasks</span>
+                    <span className="text-sm text-neutral-500 mt-2">Monitoring server and matching tasks</span>
                 </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
                 <table className="w-full">
-                    <thead><tr className="bg-gray-50 border-b border-gray-100">
+                    <thead><tr className="bg-neutral-50 border-b border-neutral-100">
                         {['Job Name', 'Status', 'Message', 'Time'].map(h => (
-                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">{h}</th>
                         ))}
                     </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-neutral-50">
                         {(jobLogs?.logs || []).map((j: any) => (
-                            <tr key={j.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-4 py-4 text-sm font-bold text-gray-900">{j.jobName}</td>
+                            <tr key={j.id} className="hover:bg-neutral-50 transition-colors">
+                                <td className="px-4 py-4 text-sm font-bold text-neutral-900">{j.jobName}</td>
                                 <td className="px-4 py-4">
                                     <span className={`px-2 py-1 rounded-md text-xs font-bold ${
-                                        j.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
-                                        j.status === 'WARNING' ? 'bg-amber-100 text-amber-700' :
-                                        'bg-red-100 text-red-700'
+                                        j.status === 'SUCCESS' ? 'bg-success-100 text-success-700' :
+                                        j.status === 'WARNING' ? 'bg-warning-100 text-warning-700' :
+                                        'bg-error-100 text-error-700'
                                     }`}>
                                         {j.status}
                                     </span>
                                 </td>
-                                <td className="px-4 py-4 text-sm text-gray-600 max-w-lg break-words">{j.message}</td>
-                                <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">{new Date(j.createdAt).toLocaleString()}</td>
+                                <td className="px-4 py-4 text-sm text-neutral-600 max-w-lg break-words">{j.message}</td>
+                                <td className="px-4 py-4 text-sm text-neutral-500 whitespace-nowrap">{new Date(j.createdAt).toLocaleString()}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                {(!jobLogs?.logs || jobLogs.logs.length === 0) && <p className="text-center py-12 text-gray-400">No job logs recorded yet</p>}
+                {(!jobLogs?.logs || jobLogs.logs.length === 0) && <p className="text-center py-12 text-neutral-400">No job logs recorded yet</p>}
             </div>
         </div>
     );
@@ -571,13 +571,13 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Conflict Resolver</h2>
-                    <p className="text-sm text-gray-500 mt-1">Manage swap disputes, escrow confirmations, cancellations & resolution history</p>
+                    <p className="text-sm text-neutral-600">Disputes members have opened about their swaps. Resolve, dismiss or escalate each one.</p>
+                    <p className="text-sm text-neutral-500 mt-1">Manage swap disputes, completion confirmations, cancellations & resolution history</p>
                 </div>
                 <button onClick={() => {
                     dispatch(fetchAllDisputes({ status: disputeFilter, priority: disputePriority }));
                     dispatch(fetchDisputeStats());
-                }} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-colors">
+                }} className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-semibold hover:bg-primary-100 transition-colors">
                     <RefreshCw className="w-4 h-4" /> Refresh
                 </button>
             </div>
@@ -586,11 +586,11 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {disputeStats && (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                     {[
-                        { label: 'Total', value: disputeStats.total, icon: BarChart3, color: 'bg-indigo-500', bg: 'bg-indigo-50 border-indigo-100' },
-                        { label: 'Open', value: disputeStats.open, icon: ShieldAlert, color: 'bg-blue-500', bg: 'bg-blue-50 border-blue-100' },
-                        { label: 'Escalated', value: disputeStats.escalated, icon: ArrowUpCircle, color: 'bg-orange-500', bg: 'bg-orange-50 border-orange-100' },
-                        { label: 'Resolved', value: disputeStats.resolved, icon: ShieldCheck, color: 'bg-emerald-500', bg: 'bg-emerald-50 border-emerald-100' },
-                        { label: 'Dismissed', value: disputeStats.dismissed, icon: ShieldX, color: 'bg-gray-500', bg: 'bg-gray-50 border-gray-100' },
+                        { label: 'Total', value: disputeStats.total, icon: BarChart3, color: 'bg-primary-500', bg: 'bg-primary-50 border-primary-100' },
+                        { label: 'Open', value: disputeStats.open, icon: ShieldAlert, color: 'bg-primary-500', bg: 'bg-primary-50 border-primary-100' },
+                        { label: 'Escalated', value: disputeStats.escalated, icon: ArrowUpCircle, color: 'bg-warning-500', bg: 'bg-warning-50 border-warning-100' },
+                        { label: 'Resolved', value: disputeStats.resolved, icon: ShieldCheck, color: 'bg-success-500', bg: 'bg-success-50 border-success-100' },
+                        { label: 'Dismissed', value: disputeStats.dismissed, icon: ShieldX, color: 'bg-neutral-500', bg: 'bg-neutral-50 border-neutral-100' },
                     ].map((s, i) => (
                         <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                             className={`rounded-xl p-4 border ${s.bg} flex items-center gap-3`}>
@@ -598,8 +598,8 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                 <s.icon className="w-4 h-4 text-white" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                                <p className="text-xs text-gray-500 font-medium">{s.label}</p>
+                                <p className="text-2xl font-bold text-neutral-900">{s.value}</p>
+                                <p className="text-xs text-neutral-500 font-medium">{s.label}</p>
                             </div>
                         </motion.div>
                     ))}
@@ -609,28 +609,28 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-5">
                 <div className="flex items-center gap-1.5">
-                    <Filter className="w-4 h-4 text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-500 uppercase">Status:</span>
+                    <Filter className="w-4 h-4 text-neutral-400" />
+                    <span className="text-xs font-semibold text-neutral-500 uppercase">Status:</span>
                 </div>
                 {['', 'OPEN', 'UNDER_REVIEW', 'ESCALATED', 'RESOLVED', 'DISMISSED'].map(f => (
                     <button key={f} onClick={() => setDisputeFilter(f)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                             disputeFilter === f
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                ? 'bg-primary-600 text-white border-primary-600'
+                                : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}>
                         {f || 'All'}
                     </button>
                 ))}
                 <div className="flex items-center gap-1.5 ml-4">
-                    <span className="text-xs font-semibold text-gray-500 uppercase">Priority:</span>
+                    <span className="text-xs font-semibold text-neutral-500 uppercase">Priority:</span>
                 </div>
                 {['', 'URGENT', 'HIGH', 'MEDIUM', 'LOW'].map(p => (
                     <button key={p} onClick={() => setDisputePriority(p)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                             disputePriority === p
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                ? 'bg-primary-600 text-white border-primary-600'
+                                : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}>
                         {p || 'All'}
                     </button>
@@ -640,10 +640,10 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {/* Disputes List */}
             <div className="space-y-3">
                 {(adminDisputes?.disputes || []).length === 0 && (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-                        <Scale className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                        <p className="text-gray-400 font-medium">No disputes found</p>
-                        <p className="text-xs text-gray-300 mt-1">Adjust filters to see more results</p>
+                    <div className="text-center py-16 bg-white rounded-xl border border-neutral-100">
+                        <Scale className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
+                        <p className="text-neutral-400 font-medium">No disputes found</p>
+                        <p className="text-xs text-neutral-300 mt-1">Adjust filters to see more results</p>
                     </div>
                 )}
                 {(adminDisputes?.disputes || []).map((d: any) => {
@@ -653,7 +653,7 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                     const isActive = ['OPEN', 'UNDER_REVIEW', 'ESCALATED'].includes(d.status);
                     return (
                         <motion.div key={d.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
 
                             {/* Card Header */}
                             <div className="p-5">
@@ -673,34 +673,34 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                                 </span>
                                             )}
                                             {d.category && (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
                                                     {getCategoryIcon(d.category)}
                                                     {d.category.replace('_', ' ')}
                                                 </span>
                                             )}
-                                            <span className="text-xs text-gray-400 ml-auto">#{d.id} · {new Date(d.createdAt).toLocaleDateString()}</span>
+                                            <span className="text-xs text-neutral-400 ml-auto">#{d.id} · {new Date(d.createdAt).toLocaleDateString()}</span>
                                         </div>
-                                        <h3 className="font-bold text-gray-900 text-base leading-snug">{d.subject}</h3>
-                                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{d.description}</p>
+                                        <h3 className="font-bold text-neutral-900 text-base leading-snug">{d.subject}</h3>
+                                        <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{d.description}</p>
 
                                         {/* Parties */}
-                                        <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
+                                        <div className="flex flex-wrap gap-4 mt-3 text-xs text-neutral-500">
                                             <span className="flex items-center gap-1.5">
-                                                <span className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-[10px] flex-shrink-0">
+                                                <span className="w-5 h-5 rounded-full bg-error-100 flex items-center justify-center text-error-600 font-bold text-[10px] flex-shrink-0">
                                                     {d.filedBy?.name?.charAt(0)}
                                                 </span>
-                                                <span><span className="font-semibold text-gray-700">Filed by:</span> {d.filedBy?.name}</span>
+                                                <span><span className="font-semibold text-neutral-700">Filed by:</span> {d.filedBy?.name}</span>
                                             </span>
                                             <span className="flex items-center gap-1.5">
-                                                <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-[10px] flex-shrink-0">
+                                                <span className="w-5 h-5 rounded-full bg-warning-100 flex items-center justify-center text-warning-600 font-bold text-[10px] flex-shrink-0">
                                                     {d.against?.name?.charAt(0)}
                                                 </span>
-                                                <span><span className="font-semibold text-gray-700">Against:</span> {d.against?.name}</span>
+                                                <span><span className="font-semibold text-neutral-700">Against:</span> {d.against?.name}</span>
                                             </span>
                                             {swap && (
                                                 <span className="flex items-center gap-1">
                                                     <FileText className="w-3 h-3" />
-                                                    <span><span className="font-semibold text-gray-700">Swap:</span> #{swap.id} — {swap.offeredSkill} ↔ {swap.requestedSkill}</span>
+                                                    <span><span className="font-semibold text-neutral-700">Swap:</span> #{swap.id} — {swap.offeredSkill} ↔ {swap.requestedSkill}</span>
                                                 </span>
                                             )}
                                         </div>
@@ -712,18 +712,18 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                             <>
                                                 {d.status !== 'ESCALATED' && (
                                                     <button onClick={() => { setSelectedDispute(d); setShowEscalateModal(true); }}
-                                                        className="px-3 py-1.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg text-xs font-bold hover:bg-orange-100 transition-colors flex items-center gap-1.5">
+                                                        className="px-3 py-1.5 bg-warning-50 text-warning-700 border border-warning-200 rounded-lg text-xs font-bold hover:bg-warning-100 transition-colors flex items-center gap-1.5">
                                                         <ArrowUpCircle className="w-3.5 h-3.5" /> Escalate
                                                     </button>
                                                 )}
                                                 <button onClick={() => { setSelectedDispute(d); setShowResolveModal(true); }}
-                                                    className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center gap-1.5">
+                                                    className="px-3 py-1.5 bg-success-50 text-success-700 border border-success-200 rounded-lg text-xs font-bold hover:bg-success-100 transition-colors flex items-center gap-1.5">
                                                     <CheckCircle className="w-3.5 h-3.5" /> Resolve
                                                 </button>
                                             </>
                                         )}
                                         <button onClick={() => setExpandedDispute(isExpanded ? null : d.id)}
-                                            className="px-3 py-1.5 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg text-xs font-bold hover:bg-gray-100 transition-colors flex items-center gap-1.5">
+                                            className="px-3 py-1.5 bg-neutral-50 text-neutral-600 border border-neutral-200 rounded-lg text-xs font-bold hover:bg-neutral-100 transition-colors flex items-center gap-1.5">
                                             <Eye className="w-3.5 h-3.5" /> {isExpanded ? 'Hide' : 'Details'}
                                             {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                         </button>
@@ -735,33 +735,33 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                     <div className="mt-4 flex flex-wrap gap-2">
                                         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                                             swap.senderConfirmed
-                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                : 'bg-gray-50 text-gray-500 border-gray-200'
+                                                ? 'bg-success-50 text-success-700 border-success-200'
+                                                : 'bg-neutral-50 text-neutral-500 border-neutral-200'
                                         }`}>
                                             {swap.senderConfirmed ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                                            Sender Escrow: {swap.senderConfirmed ? 'Confirmed ✓' : 'Pending'}
+                                            Sender: {swap.senderConfirmed ? 'Confirmed ✓' : 'Pending'}
                                         </div>
                                         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                                             swap.receiverConfirmed
-                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                : 'bg-gray-50 text-gray-500 border-gray-200'
+                                                ? 'bg-success-50 text-success-700 border-success-200'
+                                                : 'bg-neutral-50 text-neutral-500 border-neutral-200'
                                         }`}>
                                             {swap.receiverConfirmed ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                                            Receiver Escrow: {swap.receiverConfirmed ? 'Confirmed ✓' : 'Pending'}
+                                            Receiver: {swap.receiverConfirmed ? 'Confirmed ✓' : 'Pending'}
                                         </div>
                                         {escrowBoth && (
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                <ShieldCheck className="w-3 h-3" /> Mutual Escrow Confirmed
+                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-primary-50 text-primary-700 border border-primary-200">
+                                                <ShieldCheck className="w-3 h-3" /> Both confirmed
                                             </div>
                                         )}
                                         {swap.cancellationDeadline && (
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-warning-50 text-warning-700 border border-warning-200">
                                                 <CalendarX className="w-3 h-3" />
                                                 Cancel Deadline: {new Date(swap.cancellationDeadline).toLocaleDateString()}
                                             </div>
                                         )}
                                         {swap.cancelledAt && (
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-error-50 text-error-700 border border-error-200">
                                                 <XOctagon className="w-3 h-3" /> Swap Cancelled
                                             </div>
                                         )}
@@ -773,44 +773,44 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                             <AnimatePresence>
                                 {isExpanded && (
                                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                                        className="border-t border-gray-100 overflow-hidden">
-                                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 bg-gray-50/60">
+                                        className="border-t border-neutral-100 overflow-hidden">
+                                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 bg-neutral-50/60">
 
                                             {/* Swap Contract Details */}
                                             {swap && (
-                                                <div className="bg-white rounded-xl border border-gray-100 p-4">
-                                                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-1.5">
+                                                <div className="bg-white rounded-xl border border-neutral-100 p-4">
+                                                    <h4 className="text-xs font-bold text-neutral-500 uppercase mb-3 flex items-center gap-1.5">
                                                         <FileText className="w-3.5 h-3.5" /> Swap Contract
                                                     </h4>
                                                     <div className="space-y-2 text-sm">
                                                         <div className="flex justify-between">
-                                                            <span className="text-gray-500">Status</span>
+                                                            <span className="text-neutral-500">Status</span>
                                                             <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${getStatusColor(swap.status)}`}>{swap.status}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-gray-500">Offered Skill</span>
-                                                            <span className="font-semibold text-gray-800">{swap.offeredSkill || '—'}</span>
+                                                            <span className="text-neutral-500">Offered Skill</span>
+                                                            <span className="font-semibold text-neutral-800">{swap.offeredSkill || '—'}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-gray-500">Requested Skill</span>
-                                                            <span className="font-semibold text-gray-800">{swap.requestedSkill || '—'}</span>
+                                                            <span className="text-neutral-500">Requested Skill</span>
+                                                            <span className="font-semibold text-neutral-800">{swap.requestedSkill || '—'}</span>
                                                         </div>
                                                         {swap.scheduledAt && (
                                                             <div className="flex justify-between">
-                                                                <span className="text-gray-500">Scheduled</span>
-                                                                <span className="font-semibold text-gray-800">{new Date(swap.scheduledAt).toLocaleString()}</span>
+                                                                <span className="text-neutral-500">Scheduled</span>
+                                                                <span className="font-semibold text-neutral-800">{new Date(swap.scheduledAt).toLocaleString()}</span>
                                                             </div>
                                                         )}
                                                         {swap.duration && (
                                                             <div className="flex justify-between">
-                                                                <span className="text-gray-500">Duration</span>
-                                                                <span className="font-semibold text-gray-800">{swap.duration} min</span>
+                                                                <span className="text-neutral-500">Duration</span>
+                                                                <span className="font-semibold text-neutral-800">{swap.duration} min</span>
                                                             </div>
                                                         )}
                                                         {swap.cancellationReason && (
-                                                            <div className="mt-2 p-2 bg-red-50 rounded-lg">
-                                                                <p className="text-xs font-bold text-red-700 mb-1">Cancellation Reason:</p>
-                                                                <p className="text-xs text-red-600">{swap.cancellationReason}</p>
+                                                            <div className="mt-2 p-2 bg-error-50 rounded-lg">
+                                                                <p className="text-xs font-bold text-error-700 mb-1">Cancellation Reason:</p>
+                                                                <p className="text-xs text-error-600">{swap.cancellationReason}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -818,25 +818,25 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                             )}
 
                                             {/* Evidence & Details */}
-                                            <div className="bg-white rounded-xl border border-gray-100 p-4">
-                                                <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-1.5">
+                                            <div className="bg-white rounded-xl border border-neutral-100 p-4">
+                                                <h4 className="text-xs font-bold text-neutral-500 uppercase mb-3 flex items-center gap-1.5">
                                                     <MessageSquareWarning className="w-3.5 h-3.5" /> Dispute Details
                                                 </h4>
                                                 <div className="space-y-2 text-sm">
                                                     {d.evidence && (
                                                         <div>
-                                                            <p className="text-xs text-gray-500 font-semibold mb-1">Evidence Submitted:</p>
-                                                            <p className="text-xs text-gray-700 bg-gray-50 p-2 rounded-lg">{typeof d.evidence === 'string' ? d.evidence : JSON.stringify(d.evidence, null, 2)}</p>
+                                                            <p className="text-xs text-neutral-500 font-semibold mb-1">Evidence Submitted:</p>
+                                                            <p className="text-xs text-neutral-700 bg-neutral-50 p-2 rounded-lg">{typeof d.evidence === 'string' ? d.evidence : JSON.stringify(d.evidence, null, 2)}</p>
                                                         </div>
                                                     )}
                                                     {d.adminNotes && (
                                                         <div className="mt-2">
-                                                            <p className="text-xs text-gray-500 font-semibold mb-1">Admin Notes:</p>
-                                                            <p className="text-xs text-indigo-700 bg-indigo-50 p-2 rounded-lg">{d.adminNotes}</p>
+                                                            <p className="text-xs text-neutral-500 font-semibold mb-1">Admin Notes:</p>
+                                                            <p className="text-xs text-primary-700 bg-primary-50 p-2 rounded-lg">{d.adminNotes}</p>
                                                         </div>
                                                     )}
                                                     {d.updatedAt && (
-                                                        <div className="flex justify-between text-xs text-gray-400 mt-2">
+                                                        <div className="flex justify-between text-xs text-neutral-400 mt-2">
                                                             <span>Last updated</span>
                                                             <span>{new Date(d.updatedAt).toLocaleString()}</span>
                                                         </div>
@@ -846,34 +846,34 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
 
                                             {/* Resolution History */}
                                             {(d.status === 'RESOLVED' || d.status === 'DISMISSED') && (
-                                                <div className="md:col-span-2 bg-white rounded-xl border border-gray-100 p-4">
-                                                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-1.5">
+                                                <div className="md:col-span-2 bg-white rounded-xl border border-neutral-100 p-4">
+                                                    <h4 className="text-xs font-bold text-neutral-500 uppercase mb-3 flex items-center gap-1.5">
                                                         <History className="w-3.5 h-3.5" /> Resolution History
                                                     </h4>
                                                     <div className="flex items-start gap-3">
                                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                                            d.status === 'RESOLVED' ? 'bg-emerald-100' : 'bg-gray-100'
+                                                            d.status === 'RESOLVED' ? 'bg-success-100' : 'bg-neutral-100'
                                                         }`}>
                                                             {d.status === 'RESOLVED'
-                                                                ? <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                                                                : <ShieldX className="w-4 h-4 text-gray-500" />
+                                                                ? <ShieldCheck className="w-4 h-4 text-success-600" />
+                                                                : <ShieldX className="w-4 h-4 text-neutral-500" />
                                                             }
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-2 mb-1">
-                                                                <span className={`text-xs font-bold ${d.status === 'RESOLVED' ? 'text-emerald-700' : 'text-gray-600'}`}>
+                                                                <span className={`text-xs font-bold ${d.status === 'RESOLVED' ? 'text-success-700' : 'text-neutral-600'}`}>
                                                                     {d.status === 'RESOLVED' ? 'Dispute Resolved' : 'Dispute Dismissed'}
                                                                 </span>
                                                                 {d.resolvedBy && (
-                                                                    <span className="text-xs text-gray-400">by Admin: {d.resolvedBy.name}</span>
+                                                                    <span className="text-xs text-neutral-400">by Admin: {d.resolvedBy.name}</span>
                                                                 )}
-                                                                <span className="text-xs text-gray-400">{new Date(d.updatedAt).toLocaleString()}</span>
+                                                                <span className="text-xs text-neutral-400">{new Date(d.updatedAt).toLocaleString()}</span>
                                                             </div>
                                                             {d.resolution && (
-                                                                <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{d.resolution}</p>
+                                                                <p className="text-sm text-neutral-700 bg-neutral-50 p-3 rounded-lg border border-neutral-100">{d.resolution}</p>
                                                             )}
                                                             {d.adminNotes && (
-                                                                <p className="text-xs text-indigo-600 mt-2 italic">Admin notes: {d.adminNotes}</p>
+                                                                <p className="text-xs text-primary-600 mt-2 italic">Admin notes: {d.adminNotes}</p>
                                                             )}
                                                         </div>
                                                     </div>
@@ -890,7 +890,7 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
 
             {/* Pagination info */}
             {adminDisputes && adminDisputes.total > 0 && (
-                <p className="text-xs text-gray-400 text-center mt-4">
+                <p className="text-xs text-neutral-400 text-center mt-4">
                     Showing {adminDisputes.disputes.length} of {adminDisputes.total} disputes
                 </p>
             )}
@@ -898,7 +898,7 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
     );
 
     return (
-        <div className="min-h-screen bg-slate-100">
+        <div>
                 {/* Main Content */}
                 <main className="w-full">
                     <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
@@ -917,18 +917,18 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {viewDetails && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-4">
-                            <h3 className="text-xl font-bold text-gray-900">
+                        className="bg-white rounded-xl p-6 max-w-2xl w-full shadow-lg max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-start mb-6 border-b border-neutral-100 pb-4">
+                            <h3 className="text-xl font-bold text-neutral-900">
                                 {viewDetails.type === 'portfolio' ? 'Portfolio Details' : 'Certificate Details'}
                             </h3>
-                            <button onClick={() => setViewDetails(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XCircle className="w-5 h-5 text-gray-400" /></button>
+                            <button onClick={() => setViewDetails(null)} className="p-2 hover:bg-neutral-100 rounded-full transition-colors"><XCircle className="w-5 h-5 text-neutral-400" /></button>
                         </div>
                         
                         {viewDetails.type === 'portfolio' && (
                             <div className="space-y-4">
                                 {viewDetails.data.mediaUrl && (
-                                    <div className="rounded-xl overflow-hidden bg-gray-50 border border-gray-100 mb-4 flex justify-center">
+                                    <div className="rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 mb-4 flex justify-center">
                                         {viewDetails.data.mediaType === 'video' ? (
                                             <video src={viewDetails.data.mediaUrl} controls className="max-w-full max-h-80 object-contain" />
                                         ) : (
@@ -937,20 +937,20 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                     </div>
                                 )}
                                 <div>
-                                    <h4 className="text-lg font-bold text-gray-900 mb-1">{viewDetails.data.title}</h4>
+                                    <h4 className="text-lg font-bold text-neutral-900 mb-1">{viewDetails.data.title}</h4>
                                     <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
+                                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 text-xs font-bold">
                                             {viewDetails.data.user?.name?.charAt(0)}
                                         </div>
-                                        <span className="text-sm font-medium text-gray-700">{viewDetails.data.user?.name}</span>
-                                        <span className="text-xs text-gray-400 ml-2">{new Date(viewDetails.data.createdAt).toLocaleString()}</span>
+                                        <span className="text-sm font-medium text-neutral-700">{viewDetails.data.user?.name}</span>
+                                        <span className="text-xs text-neutral-400 ml-2">{new Date(viewDetails.data.createdAt).toLocaleString()}</span>
                                     </div>
-                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewDetails.data.description || 'No description provided.'}</p>
+                                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+                                        <p className="text-sm text-neutral-700 whitespace-pre-wrap">{viewDetails.data.description || 'No description provided.'}</p>
                                     </div>
                                     {viewDetails.data.mediaUrl && (
                                         <div className="mt-4 flex justify-end">
-                                            <a href={viewDetails.data.mediaUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors">
+                                            <a href={viewDetails.data.mediaUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition-colors">
                                                 Open Media Fullscreen
                                             </a>
                                         </div>
@@ -962,7 +962,7 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                         {viewDetails.type === 'certification' && (
                             <div className="space-y-4">
                                 {viewDetails.data.credentialUrl && (
-                                    <div className="rounded-xl overflow-hidden bg-gray-50 border border-gray-100 mb-4 flex justify-center">
+                                    <div className="rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 mb-4 flex justify-center">
                                         {viewDetails.data.credentialUrl.toLowerCase().endsWith('.pdf') ? (
                                             <iframe src={viewDetails.data.credentialUrl} className="w-full h-80" title="Certificate PDF" />
                                         ) : (
@@ -971,45 +971,45 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
                                     </div>
                                 )}
                                 <div>
-                                    <h4 className="text-lg font-bold text-gray-900 mb-1">{viewDetails.data.skillName}</h4>
+                                    <h4 className="text-lg font-bold text-neutral-900 mb-1">{viewDetails.data.skillName}</h4>
                                     <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
+                                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 text-xs font-bold">
                                             {viewDetails.data.user?.name?.charAt(0)}
                                         </div>
-                                        <span className="text-sm font-medium text-gray-700">{viewDetails.data.user?.name}</span>
-                                        <span className="text-xs text-gray-400 ml-2">Issued: {new Date(viewDetails.data.issuedAt).toLocaleDateString()}</span>
+                                        <span className="text-sm font-medium text-neutral-700">{viewDetails.data.user?.name}</span>
+                                        <span className="text-xs text-neutral-400 ml-2">Issued: {new Date(viewDetails.data.issuedAt).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                        <p className="text-xs text-gray-500 font-semibold mb-1 uppercase">Platform</p>
-                                        <p className="font-bold text-gray-900">{viewDetails.data.platformName || viewDetails.data.provider || 'SkillHub'}</p>
+                                    <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100">
+                                        <p className="text-xs text-neutral-500 font-semibold mb-1 uppercase">Platform</p>
+                                        <p className="font-bold text-neutral-900">{viewDetails.data.platformName || viewDetails.data.provider || 'SkillHub'}</p>
                                     </div>
-                                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                        <p className="text-xs text-gray-500 font-semibold mb-1 uppercase">Status</p>
-                                        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${viewDetails.data.verificationStatus === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : viewDetails.data.verificationStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                    <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100">
+                                        <p className="text-xs text-neutral-500 font-semibold mb-1 uppercase">Status</p>
+                                        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${viewDetails.data.verificationStatus === 'VERIFIED' ? 'bg-success-100 text-success-700' : viewDetails.data.verificationStatus === 'PENDING' ? 'bg-warning-100 text-warning-700' : 'bg-error-100 text-error-700'}`}>
                                             {viewDetails.data.verificationStatus}
                                         </span>
                                     </div>
                                     {viewDetails.data.credentialId && (
-                                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 col-span-2">
-                                            <p className="text-xs text-gray-500 font-semibold mb-1 uppercase">Credential ID</p>
-                                            <p className="font-medium text-gray-900">{viewDetails.data.credentialId}</p>
+                                        <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100 col-span-2">
+                                            <p className="text-xs text-neutral-500 font-semibold mb-1 uppercase">Credential ID</p>
+                                            <p className="font-medium text-neutral-900">{viewDetails.data.credentialId}</p>
                                         </div>
                                     )}
                                     {viewDetails.data.description && (
-                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 col-span-2">
-                                            <p className="text-xs text-gray-500 font-semibold mb-1 uppercase">Description</p>
-                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewDetails.data.description}</p>
+                                        <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 col-span-2">
+                                            <p className="text-xs text-neutral-500 font-semibold mb-1 uppercase">Description</p>
+                                            <p className="text-sm text-neutral-700 whitespace-pre-wrap">{viewDetails.data.description}</p>
                                         </div>
                                     )}
                                 </div>
                                 
                                 {viewDetails.data.credentialUrl && (
-                                    <div className="mt-6 border-t border-gray-100 pt-4 flex justify-between items-center">
-                                        <p className="text-sm text-gray-600">Document available for review</p>
-                                        <a href={viewDetails.data.credentialUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-2">
+                                    <div className="mt-6 border-t border-neutral-100 pt-4 flex justify-between items-center">
+                                        <p className="text-sm text-neutral-600">Document available for review</p>
+                                        <a href={viewDetails.data.credentialUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition-colors flex items-center gap-2">
                                             <Eye className="w-4 h-4" /> View Original Document
                                         </a>
                                     </div>
@@ -1024,12 +1024,12 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {confirmAction && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Action</h3>
-                        <p className="text-sm text-gray-600 mb-6">{confirmAction.label}</p>
+                        className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg">
+                        <h3 className="text-lg font-bold text-neutral-900 mb-2">Confirm Action</h3>
+                        <p className="text-sm text-neutral-600 mb-6">{confirmAction.label}</p>
                         <div className="flex gap-3">
-                            <button onClick={() => setConfirmAction(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
-                            <button onClick={handleConfirm} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">Confirm</button>
+                            <button onClick={() => setConfirmAction(null)} className="flex-1 py-2.5 border border-neutral-200 rounded-xl font-medium text-neutral-600 hover:bg-neutral-50">Cancel</button>
+                            <button onClick={handleConfirm} className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700">Confirm</button>
                         </div>
                     </motion.div>
                 </div>
@@ -1039,69 +1039,69 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {showResolveModal && selectedDispute && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+                        className="bg-white rounded-xl p-6 max-w-lg w-full shadow-lg">
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                                <div className="w-10 h-10 bg-success-100 rounded-xl flex items-center justify-center">
+                                    <ShieldCheck className="w-5 h-5 text-success-600" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">Resolve Dispute</h3>
-                                    <p className="text-xs text-gray-500">#{selectedDispute.id} · {selectedDispute.subject}</p>
+                                    <h3 className="text-lg font-bold text-neutral-900">Resolve Dispute</h3>
+                                    <p className="text-xs text-neutral-500">#{selectedDispute.id} · {selectedDispute.subject}</p>
                                 </div>
                             </div>
                             <button onClick={() => { setShowResolveModal(false); setSelectedDispute(null); }}
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <XCircle className="w-5 h-5 text-gray-400" />
+                                className="p-2 hover:bg-neutral-100 rounded-full transition-colors">
+                                <XCircle className="w-5 h-5 text-neutral-400" />
                             </button>
                         </div>
 
                         {/* Parties Summary */}
-                        <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center justify-between text-sm">
+                        <div className="bg-neutral-50 rounded-xl p-3 mb-4 flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2">
-                                <span className="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-xs">{selectedDispute.filedBy?.name?.charAt(0)}</span>
-                                <span className="font-medium text-gray-700">{selectedDispute.filedBy?.name}</span>
+                                <span className="w-7 h-7 rounded-full bg-error-100 flex items-center justify-center text-error-600 font-bold text-xs">{selectedDispute.filedBy?.name?.charAt(0)}</span>
+                                <span className="font-medium text-neutral-700">{selectedDispute.filedBy?.name}</span>
                             </div>
-                            <span className="text-gray-400 text-xs font-semibold">vs</span>
+                            <span className="text-neutral-400 text-xs font-semibold">vs</span>
                             <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-700">{selectedDispute.against?.name}</span>
-                                <span className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-xs">{selectedDispute.against?.name?.charAt(0)}</span>
+                                <span className="font-medium text-neutral-700">{selectedDispute.against?.name}</span>
+                                <span className="w-7 h-7 rounded-full bg-warning-100 flex items-center justify-center text-warning-600 font-bold text-xs">{selectedDispute.against?.name?.charAt(0)}</span>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1.5">Resolution Outcome <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-bold text-neutral-700 mb-1.5">Resolution Outcome <span className="text-error-500">*</span></label>
                                 <select value={resolveForm.status} onChange={e => setResolveForm({ ...resolveForm, status: e.target.value })}
-                                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                    className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-success-500 focus:border-transparent">
                                     <option value="RESOLVED">✅ Resolved — Dispute settled in favour of filer</option>
                                     <option value="DISMISSED">❌ Dismissed — Dispute found to be invalid</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1.5">Resolution Summary <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-bold text-neutral-700 mb-1.5">Resolution Summary <span className="text-error-500">*</span></label>
                                 <textarea value={resolveForm.resolution}
                                     onChange={e => setResolveForm({ ...resolveForm, resolution: e.target.value })}
                                     placeholder="Describe what action was taken and how the dispute was settled..."
-                                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                                    className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-success-500 focus:border-transparent resize-none"
                                     rows={3} />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1.5">Admin Notes (internal)</label>
+                                <label className="block text-sm font-bold text-neutral-700 mb-1.5">Admin Notes (internal)</label>
                                 <textarea value={resolveForm.adminNotes}
                                     onChange={e => setResolveForm({ ...resolveForm, adminNotes: e.target.value })}
                                     placeholder="Optional internal notes for record keeping..."
-                                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-indigo-50/40"
+                                    className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none bg-primary-50/40"
                                     rows={2} />
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => { setShowResolveModal(false); setSelectedDispute(null); }}
-                                    className="flex-1 py-3 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                                    className="flex-1 py-3 border border-neutral-200 rounded-xl font-semibold text-neutral-600 hover:bg-neutral-50 transition-colors">
                                     Cancel
                                 </button>
                                 <button onClick={handleResolveDispute}
                                     disabled={!resolveForm.resolution || conflictActionLoading}
-                                    className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                                    className="flex-1 py-3 bg-success-600 text-white rounded-xl font-bold hover:bg-success-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
                                     {conflictActionLoading
                                         ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</>
                                         : <><ShieldCheck className="w-4 h-4" /> Confirm Resolution</>
@@ -1117,53 +1117,53 @@ export default function AdminPanel({ initialTab = 'overview' }: { initialTab?: A
             {showEscalateModal && selectedDispute && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+                        className="bg-white rounded-xl p-6 max-w-lg w-full shadow-lg">
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-                                    <ArrowUpCircle className="w-5 h-5 text-orange-600" />
+                                <div className="w-10 h-10 bg-warning-100 rounded-xl flex items-center justify-center">
+                                    <ArrowUpCircle className="w-5 h-5 text-warning-600" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">Escalate Dispute</h3>
-                                    <p className="text-xs text-gray-500">#{selectedDispute.id} · {selectedDispute.subject}</p>
+                                    <h3 className="text-lg font-bold text-neutral-900">Escalate Dispute</h3>
+                                    <p className="text-xs text-neutral-500">#{selectedDispute.id} · {selectedDispute.subject}</p>
                                 </div>
                             </div>
                             <button onClick={() => { setShowEscalateModal(false); setSelectedDispute(null); }}
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <XCircle className="w-5 h-5 text-gray-400" />
+                                className="p-2 hover:bg-neutral-100 rounded-full transition-colors">
+                                <XCircle className="w-5 h-5 text-neutral-400" />
                             </button>
                         </div>
 
-                        <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4">
-                            <p className="text-xs text-orange-700 font-semibold">⚠️ Escalating will mark this dispute as high-priority and notify both parties that the case requires urgent attention.</p>
+                        <div className="bg-warning-50 border border-warning-100 rounded-xl p-3 mb-4">
+                            <p className="text-xs text-warning-700 font-semibold">⚠️ Escalating will mark this dispute as high-priority and notify both parties that the case requires urgent attention.</p>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1.5">Escalation Priority</label>
+                                <label className="block text-sm font-bold text-neutral-700 mb-1.5">Escalation Priority</label>
                                 <select value={escalateForm.priority} onChange={e => setEscalateForm({ ...escalateForm, priority: e.target.value })}
-                                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                    className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-warning-500 focus:border-transparent">
                                     <option value="URGENT">🔴 URGENT — Immediate attention required</option>
                                     <option value="HIGH">🟠 HIGH — Must resolve within 24 hours</option>
                                     <option value="MEDIUM">🟡 MEDIUM — Resolve within 3 days</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1.5">Escalation Reason / Notes <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-bold text-neutral-700 mb-1.5">Escalation Reason / Notes <span className="text-error-500">*</span></label>
                                 <textarea value={escalateForm.adminNotes}
                                     onChange={e => setEscalateForm({ ...escalateForm, adminNotes: e.target.value })}
                                     placeholder="Explain why this dispute is being escalated and what action is pending..."
-                                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                                    className="w-full p-3 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-warning-500 focus:border-transparent resize-none"
                                     rows={3} />
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => { setShowEscalateModal(false); setSelectedDispute(null); }}
-                                    className="flex-1 py-3 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                                    className="flex-1 py-3 border border-neutral-200 rounded-xl font-semibold text-neutral-600 hover:bg-neutral-50 transition-colors">
                                     Cancel
                                 </button>
                                 <button onClick={handleEscalateDispute}
                                     disabled={!escalateForm.adminNotes || conflictActionLoading}
-                                    className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                                    className="flex-1 py-3 bg-warning-600 text-white rounded-xl font-bold hover:bg-warning-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
                                     {conflictActionLoading
                                         ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</>
                                         : <><ArrowUpCircle className="w-4 h-4" /> Escalate Dispute</>
